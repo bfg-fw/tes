@@ -104,22 +104,23 @@
             background-color: #f8f9fa;
         }
 
-        /* Group for two columns */
-        .input-group {
+        /* NEW: Styles for 3-column AP/Level layout */
+        .ap-level-group {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px; /* Add margin bottom to the group */
+            grid-template-columns: repeat(3, 1fr); /* 3 columns, equal width */
+            gap: 10px; /* Space between columns */
+            margin-bottom: 15px; /* Adjust as needed for spacing below the group */
         }
-        .input-group > div {
+        .ap-level-group > div {
             display: flex;
             flex-direction: column;
         }
-        .input-group input,
-        .input-group select { /* Apply to select as well for consistency */
+        .ap-level-group input,
+        .ap-level-group select { /* Apply to select as well for consistency */
             width: 100%; 
             margin-bottom: 0; 
         }
+        /* END NEW */
         
         input[type="checkbox"] {
             margin-bottom: 15px;
@@ -282,19 +283,15 @@
 
         .calendar-grid {
             display: grid;
-            /* NEW: day label column width increased, time slots flexible */
-            grid-template-columns: 80px repeat(12, 1fr); 
+            grid-template-columns: auto repeat(12, 40px); /* Adjusted for 12 slots */
             gap: 1px;
-            min-width: 800px; /* Minimum width to accommodate wider day labels and flexible cells */
+            min-width: 700px; /* Base min-width */
         }
-        /* Adjusted min-width for calendar grid on smaller screens to be flexible */
-        @media (max-width: 768px) { 
+        /* NEW: Adjust day label width and calendar grid columns */
+        @media (min-width: 769px) { /* Apply on larger screens where space allows */
             .calendar-grid {
-                grid-template-columns: auto repeat(12, 1fr);
-                min-width: unset; /* Remove fixed min-width on small screens */
-            }
-            .day-label-row {
-                min-width: unset !important; /* Allow day labels to shrink on small screens */
+                grid-template-columns: 80px repeat(12, 1fr); /* Day label wider, cells flexible */
+                min-width: 800px; /* Adjust min-width to accommodate wider day labels */
             }
         }
         /* End NEW */
@@ -308,10 +305,10 @@
             white-space: nowrap;
         }
         .calendar-grid.read-only .availability-cell {
-            cursor: default; 
+            cursor: default; /* No pointer for read-only */
         }
         .calendar-grid.read-only .availability-cell:hover {
-            background-color: #f0f4f7; 
+            background-color: #f0f4f7; /* No hover effect for read-only */
         }
 
 
@@ -332,6 +329,10 @@
             padding-right: 5px; 
             grid-column: 1;
             white-space: normal; 
+        }
+        /* Ensure day labels don't get too small */
+        .day-label-row:nth-child(7n+1) { /* Every 7th div starting from 1st (day labels) */
+            min-width: 70px; /* Ensure a minimum width for day labels */
         }
 
         .availability-cell {
@@ -517,8 +518,7 @@
 
             <div class="panel">
                 <h2>Disponibilités Hebdomadaires</h2>
-                <label for="calendarPersonSelector">Sélectionner un participant :</label> 
-                <select id="calendarPersonSelector">
+                <label for="calendarPersonSelector">Sélectionner un participant :</label> <select id="calendarPersonSelector">
                     </select>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
 
@@ -528,7 +528,7 @@
                 </div>
                 <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
                 <button type="button" id="resetCalendarBtn" class="tertiary" style="margin-top: 10px;">Réinitialiser Calendrier</button>
-            </div>
+                </div>
 
             <div class="panel">
                 <h2>Génération d'Équipes Hebdomadaires</h2>
@@ -1317,17 +1317,7 @@
             }
         }
 
-        async function resetAllData() {
-            if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) ? Cette action est irréversible.")) {
-                // Ici, nous effaçons les données localement et sauvegardons un état vide au backend.
-                personnes = [];
-                equipes = [];
-                await saveData(); // Sauvegarde l'état vide au backend
-                showToast("Toutes les données ont été réinitialisées.", 'success');
-                await loadData(); // Recharge les données (ce sera vide initialement)
-                renderAllUI();
-            }
-        }
+        // Removed resetAllData function
 
         // --- ÉVÉNEMENTS ---
         personneForm.addEventListener('submit', addUpdatePerson);
