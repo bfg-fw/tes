@@ -452,6 +452,8 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <div class="main-content-wrapper" id="mainContentWrapper">
+        <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
+
         <div class="main-container">
             <div class="panel">
                 <h2>Participants</h2>
@@ -476,7 +478,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="input-group"> <div>
+
+                    <div class="input-group"> 
+                        <div>
                             <label for="maxParticipations">Part. Max (hebdo) :</label>
                             <input type="number" id="maxParticipations" min="1" value="1" required>
                         </div>
@@ -528,7 +532,7 @@
                 </div>
                 <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
                 <button type="button" id="resetCalendarBtn" class="tertiary" style="margin-top: 10px;">Réinitialiser Calendrier</button>
-                </div>
+            </div>
 
             <div class="panel">
                 <h2>Génération d'Équipes Hebdomadaires</h2>
@@ -541,7 +545,7 @@
                 <div id="equipesResultsContainer">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
                 </div>
-                </div>
+            </div>
         </div>
     </div>
 
@@ -567,7 +571,7 @@
         const calendarPersonSelector = document.getElementById('calendarPersonSelector'); 
         const calendarGrid = document.getElementById('calendarGrid'); 
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
-        const resetCalendarBtn = document.getElementById('resetCalendarBtn'); // New button element
+        const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
@@ -898,9 +902,8 @@
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = person.nom;
-                // NEW: Make name bold in select options
+                // Make name bold in select options
                 option.classList.add('bold-name'); 
-                // END NEW
                 calendarPersonSelector.appendChild(option);
                 if (index.toString() === lastSelectedValue) {
                     foundLastSelection = true;
@@ -990,7 +993,6 @@
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
         }
 
-        // NEW: Function to reset calendar for selected person
         async function resetCalendarForSelectedPerson() {
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
@@ -1005,7 +1007,6 @@
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
             }
         }
-        // END NEW
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
@@ -1063,8 +1064,12 @@
                     }
                 }
 
-                // If no more available slots where a team can be formed, break the loop
                 if (availableSlots.length === 0) {
+                    if (equipes.length > 0) { // Check if any teams were formed at all
+                         showToast(`Impossible de former plus d'équipes. ${equipes.length} équipe(s) formée(s).`, 'info', 7000);
+                    } else {
+                         showToast(`Impossible de former des équipes. Aucun joueur disponible ou pas assez de créneaux.`, 'error', 7000);
+                    }
                     break;
                 }
 
