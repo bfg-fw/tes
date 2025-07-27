@@ -523,13 +523,28 @@
         </div>
     </div>
 
-    <script>
+   <script>
         // --- DONNÉES ET ÉTATS ---
         let personnes = [];
         let equipes = [];
         const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."];
         const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`);
 
+        // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
+        const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
+
+        // --- CALCUL DU NIVEAU BASÉ SUR LES AP ---
+        // Assurez-vous que cette fonction est ici, au début du script !
+        function calculateLevel(baseAP, awakeningAP) {
+            const result = (baseAP + awakeningAP) / 2;
+            return result >= ELITE_AP_THRESHOLD ? "Élite" : "Normal";
+        }
+
+        // --- URL DE VOTRE BACKEND RENDER.COM ---
+        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com'; // OU VOTRE URL CORRECTE
+
+        // ... le reste de votre code JavaScript ...
+    </script>
         // --- SÉLECTEURS DU DOM ---
         // Removed login elements
         const personneForm = document.getElementById('personForm');
