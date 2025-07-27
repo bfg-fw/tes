@@ -54,7 +54,7 @@
             margin-bottom: 10px;
             color: var(--primary-color);
         }
-        h4 { 
+        h4 {
             font-size: 1em;
             margin-top: 15px;
             margin-bottom: 5px;
@@ -100,6 +100,7 @@
         input[type="text"],
         input[type="number"],
         input[type="url"],
+        input[type="password"], /* Added for password input */
         select {
             width: calc(100% - 18px);
             padding: 8px;
@@ -111,7 +112,7 @@
             color: var(--text-color);
             background-color: #f8f9fa;
         }
-        
+
         input[type="checkbox"] {
             margin-bottom: 15px;
             margin-left: 0;
@@ -152,8 +153,8 @@
         button.secondary:hover {
             background-color: #d35400;
         }
-        
-        button.tertiary { 
+
+        button.tertiary {
             background-color: #7f8c8d;
         }
         button.tertiary:hover {
@@ -171,16 +172,16 @@
             border-radius: 6px;
             margin-top: 15px;
         }
-        
-        .equipes-table-container { 
+
+        .equipes-table-container {
             overflow-x: auto;
-            max-height: 400px; 
+            max-height: 400px;
             margin-bottom: 15px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
         }
         .equipes-table-container table {
-            min-width: 500px; 
+            min-width: 500px;
         }
 
 
@@ -221,12 +222,16 @@
             font-size: 0.8em;
             margin-right: 5px;
         }
-        td.actions-cell a.button { 
+        td.actions-cell button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        td.actions-cell a.button {
             display: inline-block;
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
-            background-color: #6c5ce7; 
+            background-color: #6c5ce7;
             color: white;
             border: none;
             border-radius: 6px;
@@ -246,6 +251,11 @@
             width: calc(100% - 18px);
             margin-bottom: 15px;
         }
+        #calendarPersonSelector[disabled] {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background-color: #e9ecef;
+        }
 
         .calendar-grid-container {
             overflow-x: auto;
@@ -259,9 +269,9 @@
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: auto repeat(12, 40px); /* Adjusted for 12 slots */
+            grid-template-columns: auto repeat(12, 40px);
             gap: 1px;
-            min-width: 700px; 
+            min-width: 700px;
         }
 
         .calendar-grid > div {
@@ -272,6 +282,13 @@
             box-sizing: border-box;
             white-space: nowrap;
         }
+        .calendar-grid.read-only .availability-cell {
+            cursor: default; /* No pointer for read-only */
+        }
+        .calendar-grid.read-only .availability-cell:hover {
+            background-color: #f0f4f7; /* No hover effect for read-only */
+        }
+
 
         .hour-label-header {
             background-color: #eaf1f7;
@@ -293,7 +310,7 @@
             cursor: pointer;
             transition: background-color 0.2s ease;
             position: relative;
-            width: 40px; /* Adjusted width */
+            width: 40px;
             height: 25px;
             display: flex;
             align-items: center;
@@ -358,11 +375,15 @@
             }
             .calendar-grid {
                 min-width: unset;
-                grid-template-columns: auto repeat(12, 1fr); /* Adjusted for 12 slots */
+                grid-template-columns: auto repeat(12, 1fr);
             }
         }
         #saveAvailabilitiesBtn {
-            margin-top: auto; 
+            margin-top: auto;
+        }
+        #saveAvailabilitiesBtn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .player-with-type {
             display: flex;
@@ -377,139 +398,219 @@
             font-size: 0.7em;
             color: #555;
         }
+
+        /* Login Screen Styles */
+        #loginScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        .login-panel {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px var(--shadow-color);
+            text-align: center;
+            width: 350px;
+            max-width: 90%;
+        }
+        .login-panel h2 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            border-bottom: none;
+            font-size: 1.8em;
+        }
+        .login-panel input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        .login-panel button {
+            width: calc(50% - 10px);
+            padding: 10px 15px;
+            margin-bottom: 0;
+        }
+        .login-panel button:last-child {
+            margin-right: 0;
+        }
+        .main-content-wrapper {
+            display: none; /* Hidden by default until logged in */
+        }
+        #userInfo {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 0.9em;
+            color: var(--text-color);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
 
-    <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
+    <div id="loginScreen">
+        <div class="login-panel">
+            <h2>Connexion / Inscription</h2>
+            <input type="text" id="usernameInput" placeholder="Nom d'utilisateur" required>
+            <input type="password" id="passwordInput" placeholder="Mot de passe" required>
+            <button id="loginBtn">Se connecter</button>
+            <button id="registerBtn" class="secondary">S'inscrire</button>
+        </div>
+    </div>
 
-    <div class="main-container">
-        <div class="panel">
-            <h2>Participants</h2>
-            <form id="personForm">
-                <label for="personName">Nom :</label>
-                <input type="text" id="personName" placeholder="Nom du participant" required>
+    <div class="main-content-wrapper" id="mainContentWrapper">
+        <div id="userInfo">Connecté : <span id="currentUsername"></span></div>
+        <button id="logoutBtn" class="reset" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">Déconnexion</button>
 
-                <label for="baseAP">AP de base :</label>
-                <input type="number" id="baseAP" min="0" value="0" required>
+        <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
 
-                <label for="awakeningAP">AP d'éveil :</label>
-                <input type="number" id="awakeningAP" min="0" value="0" required>
+        <div class="main-container">
+            <div class="panel">
+                <h2>Participants</h2>
+                <form id="personForm">
+                    <label for="personName">Nom :</label>
+                    <input type="text" id="personName" placeholder="Nom du participant" required>
 
-                <label for="personLevel">Niveau (calculé) :</label>
-                <select id="personLevel" disabled> 
-                    <option value="Élite">Élite</option>
-                    <option value="Normal">Normal</option>
+                    <label for="baseAP">AP de base :</label>
+                    <input type="number" id="baseAP" min="0" value="0" required>
+
+                    <label for="awakeningAP">AP d'éveil :</label>
+                    <input type="number" id="awakeningAP" min="0" value="0" required>
+
+                    <label for="personLevel">Niveau (calculé) :</label>
+                    <select id="personLevel" disabled>
+                        <option value="Élite">Élite</option>
+                        <option value="Normal">Normal</option>
+                    </select>
+
+                    <label for="maxParticipations">Participations Max. (hebdo) :</label>
+                    <input type="number" id="maxParticipations" min="1" value="1" required>
+
+                    <label for="maxAide">Aides Max. (hebdo) :</label>
+                    <input type="number" id="maxAide" min="0" value="0" required>
+
+                    <label for="garmothLink">Lien Garmoth.com (optionnel) :</label>
+                    <input type="url" id="garmothLink" placeholder="https://garmoth.com/character/...">
+
+                    <button type="submit" id="addUpdatePersonBtn">Ajouter / Mettre à jour</button>
+                    <button type="button" id="clearPersonFormBtn" class="secondary">Effacer</button>
+                </form>
+
+                <h3>Liste des Participants</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Niveau</th>
+                                <th>AP</th>
+                                <th>AP Éveil</th>
+                                <th>Part. Max</th>
+                                <th>Aide Max</th>
+                                <th>Part. Actuelle</th>
+                                <th>Aide Actuelle</th>
+                                <th>Garmoth</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personnesTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Disponibilités Hebdomadaires</h2>
+                <label for="calendarPersonSelector">Sélectionner un participant pour gérer ses disponibilités :</label>
+                <select id="calendarPersonSelector">
+                    </select>
+                <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
+
+                <div class="calendar-grid-container">
+                    <div class="calendar-grid" id="calendarGrid">
+                        </div>
+                </div>
+                <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
+            </div>
+
+            <div class="panel">
+                <h2>Génération d'Équipes Hebdomadaires</h2>
+                <p style="font-size:0.8em; margin-bottom: 10px;">Génère un nombre donné d'équipes de 5 pour la semaine, en utilisant les disponibilités renseignées.</p>
+
+                <label for="numTeamsToGenerate">Nombre d'équipes à générer pour la semaine :</label>
+                <input type="number" id="numTeamsToGenerate" min="1" value="1" required>
+
+                <label for="teamCompositionFilter">Composition d'équipe préférée :</label>
+                <select id="teamCompositionFilter">
+                    <option value="all">Toutes Compositions (priorités par défaut)</option>
+                    <option value="5e">5 Élite</option>
+                    <option value="5n">5 Normal</option>
+                    <option value="4e1n">4 Élite + 1 Normal</option>
+                    <option value="1e4n">1 Élite + 4 Normal</option>
+                    <option value="2e3n">2 Élite + 3 Normal</option>
+                    <option value="3e2n">3 Élite + 2 Normal</option>
                 </select>
 
-                <label for="maxParticipations">Participations Max. (hebdo) :</label>
-                <input type="number" id="maxParticipations" min="1" value="1" required>
+                <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
+                <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
 
-                <label for="maxAide">Aides Max. (hebdo) :</label>
-                <input type="number" id="maxAide" min="0" value="0" required>
-
-                <label for="garmothLink">Lien Garmoth.com (optionnel) :</label>
-                <input type="url" id="garmothLink" placeholder="https://garmoth.com/character/...">
-
-                <button type="submit" id="addUpdatePersonBtn">Ajouter / Mettre à jour</button>
-                <button type="button" id="clearPersonFormBtn" class="secondary">Effacer</button>
-            </form>
-
-            <h3>Liste des Participants</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nom</th>
-                            <th>Niveau</th>
-                            <th>AP</th>
-                            <th>AP Éveil</th>
-                            <th>Part. Max</th>
-                            <th>Aide Max</th>
-                            <th>Part. Actuelle</th>
-                            <th>Aide Actuelle</th>
-                            <th>Garmoth</th> 
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="personnesTableBody">
-                        </tbody>
-                </table>
+                <h3>Équipes générées pour la semaine</h3>
+                <div id="equipesResultsContainer">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
+                </div>
+                <button id="resetAllDataBtn" class="reset" style="margin-top: 20px;">Réinitialiser Toutes les Données</button>
             </div>
-        </div>
-
-        <div class="panel">
-            <h2>Disponibilités Hebdomadaires</h2>
-            <label for="calendarPersonSelector">Sélectionner un participant pour gérer ses disponibilités :</label>
-            <select id="calendarPersonSelector">
-                </select>
-            <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
-
-            <div class="calendar-grid-container">
-                <div class="calendar-grid" id="calendarGrid">
-                    </div>
-            </div>
-            <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
-        </div>
-
-        <div class="panel">
-            <h2>Génération d'Équipes Hebdomadaires</h2>
-            <p style="font-size:0.8em; margin-bottom: 10px;">Génère un nombre donné d'équipes de 5 pour la semaine, en utilisant les disponibilités renseignées.</p>
-            
-            <label for="numTeamsToGenerate">Nombre d'équipes à générer pour la semaine :</label>
-            <input type="number" id="numTeamsToGenerate" min="1" value="1" required>
-
-            <label for="teamCompositionFilter">Composition d'équipe préférée :</label>
-            <select id="teamCompositionFilter">
-                <option value="all">Toutes Compositions (priorités par défaut)</option>
-                <option value="5e">5 Élite</option>
-                <option value="5n">5 Normal</option>
-                <option value="4e1n">4 Élite + 1 Normal</option>
-                <option value="1e4n">1 Élite + 4 Normal</option>
-                <option value="2e3n">2 Élite + 3 Normal</option>
-                <option value="3e2n">3 Élite + 2 Normal</option>
-            </select>
-            
-            <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
-            <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
-            
-            <h3>Équipes générées pour la semaine</h3>
-            <div id="equipesResultsContainer">
-                <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
-            </div>
-            <button id="resetAllDataBtn" class="reset" style="margin-top: 20px;">Réinitialiser Toutes les Données</button> 
         </div>
     </div>
 
     <script>
         // --- DONNÉES ET ÉTATS ---
-        let personnes = []; 
-        let equipes = []; 
-        const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."]; 
-        // Créneaux de 2 heures
-        const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`); 
-        
+        let personnes = [];
+        let equipes = [];
+        const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."];
+        const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`);
+
         // --- SÉLECTEURS DU DOM ---
+        // Login elements
+        const loginScreen = document.getElementById('loginScreen');
+        const usernameInput = document.getElementById('usernameInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const mainContentWrapper = document.getElementById('mainContentWrapper');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const currentUsernameSpan = document.getElementById('currentUsername'); // Added for pseudo display
+
         const personneForm = document.getElementById('personForm');
         const personNameInput = document.getElementById('personName');
-        const baseAPInput = document.getElementById('baseAP'); 
-        const awakeningAPInput = document.getElementById('awakeningAP'); 
-        const personLevelSelect = document.getElementById('personLevel'); 
+        const baseAPInput = document.getElementById('baseAP');
+        const awakeningAPInput = document.getElementById('awakeningAP');
+        const personLevelSelect = document.getElementById('personLevel');
         const maxParticipationsInput = document.getElementById('maxParticipations');
         const maxAideInput = document.getElementById('maxAide');
-        const garmothLinkInput = document.getElementById('garmothLink'); 
+        const garmothLinkInput = document.getElementById('garmothLink');
         const personnesTableBody = document.getElementById('personnesTableBody');
-        
-        const calendarPersonSelector = document.getElementById('calendarPersonSelector'); 
-        const calendarGrid = document.getElementById('calendarGrid'); 
-        
-        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); 
-        const teamCompositionFilter = document.getElementById('teamCompositionFilter'); 
+
+        const calendarPersonSelector = document.getElementById('calendarPersonSelector');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn'); // For Calendar
+
+        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
+        const teamCompositionFilter = document.getElementById('teamCompositionFilter');
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
-        const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
+        const equipesResultsContainer = document.getElementById('equipesResultsContainer');
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
-        const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
@@ -518,6 +619,10 @@
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
 
+        // --- URL DE VOTRE BACKEND RENDER.COM ---
+        // REMPLACEZ CECI PAR L'URL RÉELLE DE VOTRE SERVICE WEB DÉPLOYÉ SUR RENDER.COM
+        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com';
+
         // --- TOAST NOTIFICATIONS ---
         function showToast(message, type = 'info', duration = 3000) {
             const toast = document.createElement('div');
@@ -525,7 +630,7 @@
             toast.textContent = message;
             toastContainer.appendChild(toast);
 
-            void toast.offsetWidth; 
+            void toast.offsetWidth;
 
             toast.classList.add('show');
 
@@ -535,72 +640,244 @@
             }, duration);
         }
 
-        // --- FONCTIONS UTILITAIRES DE STOCKAGE LOCAL ---
-        function saveData() {
+        // --- AUTHENTIFICATION ---
+        let currentLoggedUser = null; // Variable pour stocker le nom de l'utilisateur connecté
+
+        function loadUsers() {
             try {
-                localStorage.setItem('personnes', JSON.stringify(personnes));
-                localStorage.setItem('equipes', JSON.stringify(equipes)); 
+                const storedUsers = localStorage.getItem('users');
+                return storedUsers ? JSON.parse(storedUsers) : {};
             } catch (e) {
-                showToast("Erreur lors de la sauvegarde des données. L'espace de stockage local est peut-être plein.", 'error');
-                console.error("Local storage save error:", e);
+                console.error("Erreur lors du chargement des utilisateurs (localStorage):", e);
+                return {};
             }
         }
 
-        function loadData() {
+        function saveUsers(users) {
             try {
-                const storedPersons = localStorage.getItem('personnes');
-                const storedEquipes = localStorage.getItem('equipes');
-                if (storedPersons) {
-                    personnes = JSON.parse(storedPersons);
-                    personnes.forEach(p => {
-                        // Ensure new properties exist for old data and re-calculate level
-                        if (typeof p.baseAP === 'undefined') p.baseAP = 0;
-                        if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
-                        p.niveau = calculateLevel(p.baseAP, p.awakeningAP); 
-                        if (typeof p.garmothLink === 'undefined') p.garmothLink = ''; 
-                        
-                        // Adapt old availability data to new 2-hour slots if needed
-                        // This assumes old data was per hour. If it was already 2-hour, this is harmless.
-                        if (typeof p.disponibilites === 'undefined' || Object.keys(p.disponibilites).length === 0 || !p.disponibilites[JOURS_SEMAINE[0]][HEURES_JOUR[0]]) {
-                             p.disponibilites = generateEmptyAvailabilities(); 
-                        } else {
-                            // If old data exists, ensure it's compatible with new slots
-                            // For simplicity, we regenerate based on new HEURES_JOUR
-                            // A more complex migration would map old 1h slots to new 2h slots
-                            const newDispos = generateEmptyAvailabilities();
-                            JOURS_SEMAINE.forEach(day => {
-                                HEURES_JOUR.forEach(newHourSlot => {
-                                    // Take the first hour of the 2-hour slot to check if it was available in the old data
-                                    const oldHour = parseInt(newHourSlot.split('h-')[0]);
-                                    if (p.disponibilites[day] && p.disponibilites[day][`${oldHour}h`]) {
-                                        newDispos[day][newHourSlot] = true;
-                                    }
-                                });
-                            });
-                            p.disponibilites = newDispos;
-                        }
-
-                        if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
-                        if (typeof p.currentAide === 'undefined') p.currentAide = 0;
-                    });
-                }
-                if (storedEquipes) {
-                    equipes = JSON.parse(storedEquipes); 
-                }
+                localStorage.setItem('users', JSON.stringify(users));
             } catch (e) {
-                showToast("Erreur lors du chargement des données. Les données locales pourraient être corrompues.", 'error');
-                console.error("Local storage load error:", e);
-                localStorage.clear();
+                showToast("Erreur lors de la sauvegarde des utilisateurs (localStorage). L'espace de stockage local est peut-être plein.", 'error');
+                console.error("Local storage save error (users):", e);
+            }
+        }
+
+        async function login() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                showToast("Veuillez entrer un nom d'utilisateur et un mot de passe.", 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('currentUser', username);
+                    currentLoggedUser = username;
+                    currentUsernameSpan.textContent = username;
+                    loginScreen.style.display = 'none';
+                    mainContentWrapper.style.display = 'block';
+                    showToast(`Bienvenue, ${username} !`, 'success');
+                    await loadData(); // Charger les données après la connexion réussie
+                    renderAllUI();
+                } else {
+                    showToast(data.message || 'Erreur de connexion.', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur réseau/API lors de la connexion:', error);
+                showToast('Impossible de se connecter au serveur backend. Vérifiez votre connexion ou l\'URL du backend.', 'error');
+            }
+        }
+
+        async function register() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!username || !password) {
+                showToast("Veuillez entrer un nom d'utilisateur et un mot de passe.", 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message || `Compte "${username}" créé avec succès ! Vous pouvez maintenant vous connecter.`, 'success');
+                    usernameInput.value = '';
+                    passwordInput.value = '';
+                } else {
+                    showToast(data.message || 'Erreur lors de l\'inscription.', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur réseau/API lors de l\'inscription:', error);
+                showToast('Impossible de se connecter au serveur backend. Vérifiez votre connexion ou l\'URL du backend.', 'error');
+            }
+        }
+
+        function logout() {
+            if (confirm("Voulez-vous vraiment vous déconnecter ?")) {
+                localStorage.removeItem('currentUser');
+                currentLoggedUser = null;
+                currentUsernameSpan.textContent = '';
+                loginScreen.style.display = 'flex';
+                mainContentWrapper.style.display = 'none';
+                usernameInput.value = '';
+                passwordInput.value = '';
+                showToast("Déconnexion réussie.", 'info');
+                // Clear data displayed after logout, as it's user-specific
                 personnes = [];
-                equipes = []; 
+                equipes = [];
+                renderAllUI();
             }
         }
 
-        // --- CALCUL DU NIVEAU BASÉ SUR LES AP ---
-        function calculateLevel(baseAP, awakeningAP) {
-            const result = (baseAP + awakeningAP) / 2;
-            return result >= ELITE_AP_THRESHOLD ? "Élite" : "Normal";
+        async function checkLoginStatus() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                currentLoggedUser = currentUser;
+                currentUsernameSpan.textContent = currentUser;
+                loginScreen.style.display = 'none';
+                mainContentWrapper.style.display = 'block';
+                showToast(`Connecté en tant que ${currentUser}.`, 'info', 2000);
+                await loadData(); // Charger les données au démarrage si déjà connecté
+                renderAllUI();
+            } else {
+                loginScreen.style.display = 'flex';
+                mainContentWrapper.style.display = 'none';
+            }
         }
+        // --- FIN AUTHENTIFICATION ---
+
+        // --- FONCTIONS UTILITAIRES DE SAUVEGARDE/CHARGEMENT VIA BACKEND ---
+        async function saveData() {
+            if (!currentLoggedUser) {
+                console.warn("Pas d'utilisateur connecté, impossible de sauvegarder les données.");
+                showToast("Veuillez vous connecter pour sauvegarder vos données.", 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/saveData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: currentLoggedUser,
+                        personnes: personnes,
+                        equipes: equipes
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Échec de la sauvegarde des données');
+                }
+                // showToast("Données sauvegardées sur le serveur.", 'success'); // Commenté car déjà appelé par d'autres actions
+            } catch (error) {
+                console.error('Erreur lors de la sauvegarde des données sur le backend:', error);
+                showToast(`Erreur lors de la sauvegarde des données: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadData() {
+            if (!currentLoggedUser) {
+                console.warn("Pas d'utilisateur connecté, impossible de charger les données.");
+                personnes = [];
+                equipes = [];
+                return;
+            }
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/loadData/${currentLoggedUser}`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Échec du chargement des données');
+                }
+
+                const data = await response.json();
+                personnes = data.personnes || [];
+                equipes = data.equipes || [];
+
+                // Migration / Initialisation des propriétés pour les données chargées
+                personnes.forEach(p => {
+                    if (typeof p.baseAP === 'undefined') p.baseAP = 0;
+                    if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
+                    p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
+                    if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
+                    if (typeof p.owner === 'undefined') p.owner = currentLoggedUser; // Assigner le propriétaire par défaut si non défini
+
+                    // Migration des disponibilités 1h vers 2h si nécessaire
+                    const tempDispos = generateEmptyAvailabilities(); // Génère une structure 2h
+                    if (p.disponibilites) { // Si d'anciennes 'disponibilites' existent
+                        JOURS_SEMAINE.forEach(day => {
+                            HEURES_JOUR.forEach(newHourSlot => {
+                                const oldHourStart = parseInt(newHourSlot.split('h-')[0]);
+                                let isAvailableInOldSlot = false;
+                                // Supposons que les anciennes données avaient des créneaux de 1h
+                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart}h`]) {
+                                    isAvailableInOldSlot = true;
+                                }
+                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart + 1}h`]) {
+                                    isAvailableInOldSlot = true;
+                                }
+                                tempDispos[day][newHourSlot] = isAvailableInOldSlot;
+                            });
+                        });
+                    }
+                    p.disponibilites = tempDispos;
+
+                    if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
+                    if (typeof p.currentAide === 'undefined') p.currentAide = 0;
+                });
+
+                // Assurez-vous que l'utilisateur connecté a bien un profil de participant
+                if (!personnes.some(p => p.owner === currentLoggedUser)) {
+                    personnes.push({
+                        nom: currentLoggedUser, // Le nom du participant est le nom d'utilisateur
+                        baseAP: 0,
+                        awakeningAP: 0,
+                        niveau: 'Normal',
+                        maxParticipations: 1,
+                        maxAide: 0,
+                        currentParticipations: 0,
+                        currentAide: 0,
+                        disponibilites: generateEmptyAvailabilities(),
+                        garmothLink: '',
+                        owner: currentLoggedUser // Marque comme appartenant à cet utilisateur
+                    });
+                    await saveData(); // Sauvegarder le nouveau participant sur le backend
+                }
+
+                // showToast("Données chargées depuis le serveur.", 'info'); // Commenté car appelé au démarrage
+            } catch (error) {
+                console.error('Erreur lors du chargement des données depuis le backend:', error);
+                showToast(`Erreur lors du chargement des données: ${error.message}. Les données locales sont vides.`, 'error');
+                personnes = []; // Efface les données locales en cas d'erreur de chargement
+                equipes = [];
+            }
+        }
+
+        // --- Render All UI Components (to be called after loadData) ---
+        function renderAllUI() {
+            renderPersonnesTable();
+            renderEquipesTable();
+            renderCalendar();
+            clearPersonForm(); // Always clear the form after loading UI
+        }
+
 
         // --- GESTION DES PERSONNES ---
         function renderPersonnesTable() {
@@ -608,7 +885,7 @@
             if (personnes.length === 0) {
                 const row = personnesTableBody.insertRow();
                 const cell = row.insertCell();
-                cell.colSpan = 10; 
+                cell.colSpan = 10;
                 cell.textContent = "Aucun participant enregistré.";
                 cell.style.textAlign = 'center';
                 return;
@@ -619,21 +896,21 @@
                 row.dataset.personIndex = index;
 
                 row.insertCell().textContent = person.nom;
-                row.insertCell().textContent = person.niveau; 
-                row.insertCell().textContent = person.baseAP; 
-                row.insertCell().textContent = person.awakeningAP; 
+                row.insertCell().textContent = person.niveau;
+                row.insertCell().textContent = person.baseAP;
+                row.insertCell().textContent = person.awakeningAP;
                 row.insertCell().textContent = person.maxParticipations;
                 row.insertCell().textContent = person.maxAide;
                 row.insertCell().textContent = person.currentParticipations;
                 row.insertCell().textContent = person.currentAide;
 
-                const garmothCell = row.insertCell(); 
+                const garmothCell = row.insertCell();
                 if (person.garmothLink) {
                     const garmothLinkBtn = document.createElement('a');
                     garmothLinkBtn.href = person.garmothLink;
-                    garmothLinkBtn.target = '_blank'; 
+                    garmothLinkBtn.target = '_blank';
                     garmothLinkBtn.textContent = 'Voir Stats';
-                    garmothLinkBtn.className = 'button'; 
+                    garmothLinkBtn.className = 'button';
                     garmothCell.appendChild(garmothLinkBtn);
                 } else {
                     garmothCell.textContent = '-';
@@ -642,9 +919,16 @@
                 const actionsCell = row.insertCell();
                 actionsCell.className = 'actions-cell';
 
+                const isOwner = (person.owner === currentLoggedUser); // Check ownership
+
                 const editBtn = document.createElement('button');
                 editBtn.textContent = 'Modif.';
+                editBtn.disabled = !isOwner; // Disable if not owner
                 editBtn.onclick = (e) => {
+                    if (!isOwner) { // Prevent action if disabled
+                        showToast("Vous ne pouvez modifier que votre propre profil.", 'error');
+                        return;
+                    }
                     e.stopPropagation();
                     editPerson(index);
                 };
@@ -653,16 +937,21 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Suppr.';
                 deleteBtn.className = 'reset';
+                deleteBtn.disabled = !isOwner; // Disable if not owner
                 deleteBtn.onclick = (e) => {
+                    if (!isOwner) { // Prevent action if disabled
+                        showToast("Vous ne pouvez supprimer que votre propre profil.", 'error');
+                        return;
+                    }
                     e.stopPropagation();
                     deletePerson(index);
                 };
                 actionsCell.appendChild(deleteBtn);
             });
-            updateCalendarPersonSelector(); 
+            updateCalendarPersonSelector();
         }
 
-        let editingPersonIndex = -1;
+        let editingPersonIndex = -1; // -1 means adding new person, not editing
 
         function updateCalculatedLevelDisplay() {
             const baseAP = parseInt(baseAPInput.value) || 0;
@@ -673,15 +962,20 @@
         baseAPInput.addEventListener('input', updateCalculatedLevelDisplay);
         awakeningAPInput.addEventListener('input', updateCalculatedLevelDisplay);
 
-        function addUpdatePerson(event) {
+        async function addUpdatePerson(event) {
             event.preventDefault();
             const nom = personNameInput.value.trim();
             const baseAP = parseInt(baseAPInput.value) || 0;
             const awakeningAP = parseInt(awakeningAPInput.value) || 0;
-            const niveau = calculateLevel(baseAP, awakeningAP); 
+            const niveau = calculateLevel(baseAP, awakeningAP);
             const maxPart = parseInt(maxParticipationsInput.value);
             const maxAide = parseInt(maxAideInput.value);
-            const garmothLink = garmothLinkInput.value.trim(); 
+            const garmothLink = garmothLinkInput.value.trim();
+
+            if (!currentLoggedUser) {
+                showToast("Veuillez vous connecter pour gérer les participants.", 'error');
+                return;
+            }
 
             if (!nom) {
                 showToast("Le nom du participant ne peut pas être vide.", 'error');
@@ -691,7 +985,7 @@
                 showToast("Les valeurs d'AP doivent être des nombres positifs.", 'error');
                 return;
             }
-            if (isNaN(maxPart) || maxPart < 1 || isNaN(maxAide) || maxAide < 0) { 
+            if (isNaN(maxPart) || maxPart < 1 || isNaN(maxAide) || maxAide < 0) {
                    showToast("Les participations max. doivent être au moins 1. Les aides max. doivent être un nombre positif.", 'error');
                    return;
             }
@@ -700,96 +994,153 @@
                 return;
             }
 
+            // Find the index of the participant owned by the current user
+            const currentUserPersonIndex = personnes.findIndex(p => p.owner === currentLoggedUser);
+            const isEditingCurrentUser = (editingPersonIndex !== -1 && personnes[editingPersonIndex].owner === currentLoggedUser);
 
-            if (editingPersonIndex !== -1) {
+            if (currentUserPersonIndex !== -1 && nom !== currentLoggedUser && !isEditingCurrentUser) {
+                // If user already has a profile AND trying to add/modify someone else without being in edit mode for own profile
+                showToast("Vous ne pouvez gérer que votre propre profil de participant.", 'error');
+                clearPersonForm();
+                return;
+            }
+
+            // If user clicks "Ajouter / Mettre à jour" while no owner profile is loaded in form
+            // Or if they try to edit a different name in the form, but they are owner, it means they want to rename their profile
+            if (isEditingCurrentUser) { // User is editing their own profile
                 const person = personnes[editingPersonIndex];
-                if (person.nom !== nom && personnes.some((p, idx) => p.nom === nom && idx !== editingPersonIndex)) {
-                       showToast("Ce nom de participant existe déjà. Veuillez en choisir un autre.", 'error');
-                       return;
-                }
-                person.nom = nom;
-                person.baseAP = baseAP;
-                person.awakeningAP = awakeningAP;
-                person.niveau = niveau; 
-                person.maxParticipations = maxPart;
-                person.maxAide = maxAide;
-                person.garmothLink = garmothLink; 
-                showToast(`Participant "${nom}" mis à jour avec succès !`, 'success');
-                editingPersonIndex = -1;
-                addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
-            } else {
-                if (personnes.some(p => p.nom === nom)) {
-                    showToast("Ce nom de participant existe déjà. Veuillez le modifier ou mettre à jour l'existant.", 'error');
+                // Allow changing name, but ensure new name isn't taken by another user's profile
+                if (nom !== currentLoggedUser && personnes.some(p => p.nom === nom && p.owner !== currentLoggedUser)) {
+                    showToast("Ce nom de participant est déjà utilisé par un autre compte. Veuillez en choisir un autre.", 'error');
                     return;
                 }
+                person.nom = nom; // User can change their own name
+                person.baseAP = baseAP;
+                person.awakeningAP = awakeningAP;
+                person.niveau = niveau;
+                person.maxParticipations = maxPart;
+                person.maxAide = maxAide;
+                person.garmothLink = garmothLink;
+                showToast(`Votre profil (${nom}) a été mis à jour avec succès !`, 'success');
+            } else if (currentUserPersonIndex === -1 && nom === currentLoggedUser) {
+                // This means the user's profile was somehow deleted or not created, and they're re-adding it
+                // Or they just filled the form with their username to create it.
                 personnes.push({
                     nom: nom,
                     baseAP: baseAP,
                     awakeningAP: awakeningAP,
-                    niveau: niveau, 
+                    niveau: niveau,
                     maxParticipations: maxPart,
                     maxAide: maxAide,
                     currentParticipations: 0,
                     currentAide: 0,
                     disponibilites: generateEmptyAvailabilities(),
-                    garmothLink: garmothLink 
+                    garmothLink: garmothLink,
+                    owner: currentLoggedUser // Mark as owned by current user
                 });
-                showToast(`Participant "${nom}" ajouté avec succès !`, 'success');
+                showToast(`Votre profil (${nom}) a été créé avec succès !`, 'success');
+            } else {
+                // This should not be reachable if each user has exactly one profile.
+                // Or if we strictly want to prevent non-owner profile creation from here.
+                showToast("Vous ne pouvez créer/modifier que votre propre profil de participant.", 'error');
+                clearPersonForm();
+                return;
             }
 
-            saveData();
+            await saveData();
             renderPersonnesTable();
             clearPersonForm();
         }
 
         function editPerson(index) {
             const person = personnes[index];
+            const isOwner = (person.owner === currentLoggedUser);
+
+            if (!isOwner) {
+                showToast("Vous ne pouvez pas modifier le profil d'un autre participant. Vous pouvez le visualiser.", 'error');
+                clearPersonForm(); // Clear the form to avoid confusion
+                return;
+            }
+
             personNameInput.value = person.nom;
-            baseAPInput.value = person.baseAP; 
-            awakeningAPInput.value = person.awakeningAP; 
-            personLevelSelect.value = person.niveau; 
+            baseAPInput.value = person.baseAP;
+            awakeningAPInput.value = person.awakeningAP;
+            personLevelSelect.value = person.niveau;
             maxParticipationsInput.value = person.maxParticipations;
             maxAideInput.value = person.maxAide;
-            garmothLinkInput.value = person.garmothLink; 
+            garmothLinkInput.value = person.garmothLink;
             editingPersonIndex = index;
             addUpdatePersonBtn.textContent = 'Mettre à jour';
             personNameInput.focus();
-            showToast(`Modification de "${person.nom}".`, 'info', 2000);
+            showToast(`Modification de votre profil (${person.nom}).`, 'info', 2000);
+
+            // Enable inputs for owner
+            personNameInput.disabled = false;
+            baseAPInput.disabled = false;
+            awakeningAPInput.disabled = false;
+            maxParticipationsInput.disabled = false;
+            maxAideInput.disabled = false;
+            garmothLinkInput.disabled = false;
+            addUpdatePersonBtn.disabled = false; // Enable if it was disabled
+            clearPersonFormBtn.disabled = false;
         }
 
-        function deletePerson(index) {
-            const personName = personnes[index].nom;
-            if (confirm(`Êtes-vous sûr de vouloir supprimer le participant "${personName}" ?`)) {
+        async function deletePerson(index) {
+            const person = personnes[index];
+            const isOwner = (person.owner === currentLoggedUser);
+
+            if (!isOwner) {
+                showToast("Vous ne pouvez pas supprimer le profil d'un autre participant.", 'error');
+                return;
+            }
+            if (confirm(`Êtes-vous sûr de vouloir supprimer votre profil de participant "${person.nom}" ? Cette action est irréversible.`)) {
+                // To delete from backend, we need a specific API route.
+                // For now, we'll remove it locally and then save, which will overwrite.
+                // A true delete would be: await fetch(`${BACKEND_API_URL}/api/deleteParticipant/${person.nom}`, method: 'DELETE')
                 personnes.splice(index, 1);
-                saveData();
+                await saveData(); // Save the new state (without the deleted person)
                 renderPersonnesTable();
-                showToast(`Participant "${personName}" supprimé.`, 'success');
-                
-                const selectedCalendarIndex = parseInt(calendarPersonSelector.value);
-                if (selectedCalendarIndex === index) {
-                    if (personnes.length > 0) {
-                        calendarPersonSelector.value = 0;
-                    } else {
-                        calendarPersonSelector.value = '';
-                    }
-                } else if (selectedCalendarIndex > index) {
-                    calendarPersonSelector.value = selectedCalendarIndex - 1;
-                }
-                renderCalendar(); 
+                showToast(`Votre profil de participant "${person.nom}" a été supprimé.`, 'success');
+
+                // After deleting their own profile, if they were the only participant for this user
+                // the loadData will recreate a default one for them.
+                await loadData();
+                renderAllUI();
             }
         }
 
         function clearPersonForm() {
             personneForm.reset();
-            personNameInput.value = '';
-            baseAPInput.value = 0; 
-            awakeningAPInput.value = 0; 
-            personLevelSelect.value = 'Normal'; 
+            personNameInput.value = currentLoggedUser || ''; // Pre-fill name with username if logged in
+            baseAPInput.value = 0;
+            awakeningAPInput.value = 0;
+            personLevelSelect.value = 'Normal';
             maxParticipationsInput.value = 1;
             maxAideInput.value = 0;
-            garmothLinkInput.value = ''; 
+            garmothLinkInput.value = '';
             editingPersonIndex = -1;
             addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
+
+            // Disable inputs if not editing current user's profile
+            const currentUserPerson = personnes.find(p => p.owner === currentLoggedUser);
+            if (currentUserPerson && currentUserPerson.nom !== personNameInput.value) { // If form is not showing their profile
+                 personNameInput.disabled = true;
+                 baseAPInput.disabled = true;
+                 awakeningAPInput.disabled = true;
+                 maxParticipationsInput.disabled = true;
+                 maxAideInput.disabled = true;
+                 garmothLinkInput.disabled = true;
+                 addUpdatePersonBtn.disabled = true; // Disable if they can't add/update someone else
+            } else { // If form is showing their profile or new profile for them
+                 personNameInput.disabled = false;
+                 baseAPInput.disabled = false;
+                 awakeningAPInput.disabled = false;
+                 maxParticipationsInput.disabled = false;
+                 maxAideInput.disabled = false;
+                 garmothLinkInput.disabled = false;
+                 addUpdatePersonBtn.disabled = false;
+            }
+            clearPersonFormBtn.disabled = false; // Always allow clearing the form
         }
 
         // --- GESTION DES DISPONIBILITÉS (CALENDRIER) ---
@@ -798,7 +1149,7 @@
             JOURS_SEMAINE.forEach(day => {
                 availabilities[day] = {};
                 HEURES_JOUR.forEach(hour => {
-                    availabilities[day][hour] = false; 
+                    availabilities[day][hour] = false;
                 });
             });
             return availabilities;
@@ -809,27 +1160,40 @@
             calendarPersonSelector.innerHTML = '';
 
             if (personnes.length === 0) {
-                calendarPersonSelector.innerHTML = '<option value="">-- Aucune personne --</option>';
+                calendarPersonSelector.innerHTML = '<option value="">-- Aucun participant --</option>';
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Ajoutez un participant pour gérer ses disponibilités.</div>';
+                calendarPersonSelector.disabled = true;
+                saveAvailabilitiesBtn.disabled = true;
+                calendarGrid.classList.add('read-only');
                 return;
             }
 
             let foundLastSelection = false;
+            let currentUserPersonIndexInList = -1;
+
             personnes.forEach((person, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = person.nom;
                 calendarPersonSelector.appendChild(option);
+                if (person.owner === currentLoggedUser) {
+                    currentUserPersonIndexInList = index; // Store current user's profile index
+                }
                 if (index.toString() === lastSelectedValue) {
                     foundLastSelection = true;
                 }
             });
 
-            if (foundLastSelection) {
+            // Select current user's profile by default in the calendar
+            if (currentUserPersonIndexInList !== -1) {
+                calendarPersonSelector.value = currentUserPersonIndexInList;
+            } else if (foundLastSelection) { // Fallback to previous selection if user's profile not found
                 calendarPersonSelector.value = lastSelectedValue;
-            } else {
+            } else { // Fallback to first person if no previous selection
                 calendarPersonSelector.value = personnes.length > 0 ? 0 : '';
             }
+
+            calendarPersonSelector.disabled = false;
             renderCalendar();
         }
 
@@ -839,10 +1203,22 @@
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Veuillez sélectionner un participant pour afficher son calendrier.</div>';
+                calendarGrid.classList.add('read-only');
+                saveAvailabilitiesBtn.disabled = true;
                 return;
             }
-            const currentPerson = personnes[selectedIndex];
-            calendarGrid.dataset.personIndex = selectedIndex;
+            const currentPersonInCalendar = personnes[selectedIndex]; // Renamed to avoid conflict
+
+            const isOwner = (currentPersonInCalendar.owner === currentLoggedUser);
+
+            // Set calendar to read-only mode if not the owner
+            if (!isOwner) {
+                calendarGrid.classList.add('read-only');
+                saveAvailabilitiesBtn.disabled = true;
+            } else {
+                calendarGrid.classList.remove('read-only');
+                saveAvailabilitiesBtn.disabled = false;
+            }
 
             const emptyCorner = document.createElement('div');
             calendarGrid.appendChild(emptyCorner);
@@ -862,7 +1238,7 @@
                 HEURES_JOUR.forEach(hour => {
                     const cell = document.createElement('div');
                     cell.className = 'availability-cell';
-                    const isAvailable = currentPerson.disponibilites[day] && currentPerson.disponibilites[day][hour];
+                    const isAvailable = currentPersonInCalendar.disponibilites[day] && currentPersonInCalendar.disponibilites[day][hour];
                     if (isAvailable) {
                         cell.classList.add('oui');
                         cell.textContent = 'Oui';
@@ -872,13 +1248,23 @@
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
-                    cell.onclick = toggleAvailability;
+                    // Only attach click handler if owner
+                    if (isOwner) {
+                        cell.onclick = toggleAvailability;
+                    }
                     calendarGrid.appendChild(cell);
                 });
             });
         }
 
         function toggleAvailability(event) {
+            // Check if the calendar itself is in read-only mode, or if the save button is disabled
+            // This is a redundant check, but safer.
+            if (calendarGrid.classList.contains('read-only') || saveAvailabilitiesBtn.disabled) {
+                showToast("Vous ne pouvez modifier que votre propre calendrier de disponibilités.", 'error');
+                return;
+            }
+
             const cell = event.target;
             cell.classList.toggle('oui');
             cell.classList.toggle('non');
@@ -889,36 +1275,41 @@
             }
         }
 
-        function saveAvailabilities() {
+        async function saveAvailabilities() {
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
                 showToast("Veuillez sélectionner un participant pour sauvegarder les disponibilités.", 'error');
                 return;
             }
-            const currentPerson = personnes[selectedIndex];
+            const currentPersonInCalendar = personnes[selectedIndex];
 
-            currentPerson.disponibilites = generateEmptyAvailabilities();
+            if (currentPersonInCalendar.owner !== currentLoggedUser) {
+                showToast("Vous ne pouvez pas sauvegarder les disponibilités d'un autre participant.", 'error');
+                return;
+            }
+
+            currentPersonInCalendar.disponibilites = generateEmptyAvailabilities();
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
                 const day = cell.dataset.day;
                 const hour = cell.dataset.hour;
-                currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
+                currentPersonInCalendar.disponibilites[day][hour] = cell.classList.contains('oui');
             });
-            saveData();
-            showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
+            await saveData();
+            showToast(`Disponibilités de ${currentPersonInCalendar.nom} sauvegardées !`, 'success');
         }
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
-        function generateTeams() {
+        async function generateTeams() {
             const numTeams = parseInt(numTeamsToGenerateInput.value);
             if (isNaN(numTeams) || numTeams < 1) {
                 showToast("Veuillez entrer un nombre valide d'équipes à générer (au moins 1).", 'error');
                 return;
             }
 
-            equipes = []; 
-            resetParticipationCounters(false); 
+            equipes = [];
+            resetParticipationCounters(false); // Resets current participations to 0
 
             let equipeID = 1;
             const selectedCompositionFilter = teamCompositionFilter.value;
@@ -926,7 +1317,7 @@
             // Define priority for team compositions when "all" is selected
             const ALL_TEAM_COMBINATIONS_PRIORITY = [
                 { elite: 5, normal: 0, label: "5 Élite" },
-                { elite: 4, normal: 1, label: "4 Élite + 1 Normal" }, 
+                { elite: 4, normal: 1, label: "4 Élite + 1 Normal" },
                 { elite: 3, normal: 2, label: "3 Élite + 2 Normal" },
                 { elite: 2, normal: 3, label: "2 Élite + 3 Normal" },
                 { elite: 1, normal: 4, label: "1 Élite + 4 Normal" },
@@ -947,20 +1338,20 @@
                 }
             }
 
-            const usedTimeSlots = new Set(); 
+            const usedTimeSlots = new Set();
 
             let formedTeamsCount = 0;
             while (formedTeamsCount < numTeams) {
                 let bestSlot = null;
-                
+
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
                         const slotKey = `${day}_${hour}`;
-                        if (usedTimeSlots.has(slotKey)) continue; 
+                        if (usedTimeSlots.has(slotKey)) continue;
 
-                        let eligiblePlayersInSlot = personnes.filter(p => 
-                            p.disponibilites[day] && p.disponibilites[day][hour] && 
+                        let eligiblePlayersInSlot = personnes.filter(p =>
+                            p.disponibilites[day] && p.disponibilites[day][hour] &&
                             (p.currentParticipations < p.maxParticipations || p.currentAide < p.maxAide)
                         );
 
@@ -991,25 +1382,28 @@
                 // Sort slots by eligible players count (descending) to prioritize slots with more options
                 availableSlots.sort((a, b) => b.eligiblePlayersCount - a.eligiblePlayersCount);
                 bestSlot = availableSlots[0];
-                usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`); 
+                usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
 
                 let teamFormedInThisSlot = false;
+                // Get eligible players again, as their `currentParticipations`/`currentAide` might have changed
+                // or their availability state might have changed if a previous team was formed in the same slot.
                 const playersAvailableInBestSlot = personnes
                     .map((p, index) => ({ person: p, index: index }))
-                    .filter(item => 
-                        item.person.disponibilites[bestSlot.day] && item.person.disponibilites[bestSlot.day][bestSlot.hour] && 
+                    .filter(item =>
+                        item.person.disponibilites[bestSlot.day] && item.person.disponibilites[bestSlot.day][bestSlot.hour] &&
                         (item.person.currentParticipations < item.person.maxParticipations || item.person.currentAide < item.person.maxAide)
                     )
                     .map(item => item.index);
-                
+
                 const eliteInSlot = playersAvailableInBestSlot.filter(idx => personnes[idx].niveau === "Élite");
                 const normalInSlot = playersAvailableInBestSlot.filter(idx => personnes[idx].niveau === "Normal");
 
-                for (const combo of teamCombinationsToTry) { 
+                for (const combo of teamCombinationsToTry) {
                     if (eliteInSlot.length >= combo.elite && normalInSlot.length >= combo.normal) {
                         const teamResult = tryPickPersons(eliteInSlot, normalInSlot, combo.elite, combo.normal);
                         if (teamResult.success) {
-                            // Store how each player was counted (participation or aide)
+                            // Determine if each picked player is a 'Participation' or 'Aide' for THIS specific team
+                            // This check must happen *before* updating person.currentParticipations
                             const membersWithTypes = teamResult.pickedPersons.map(idx => {
                                 const person = personnes[idx];
                                 let type = '';
@@ -1017,6 +1411,9 @@
                                     type = 'Participation';
                                 } else if (person.currentAide < person.maxAide) {
                                     type = 'Aide';
+                                } else {
+                                    // Fallback, theoretically shouldn't happen if pickFromDispo is correct
+                                    type = 'Inconnu';
                                 }
                                 return { name: person.nom, type: type };
                             });
@@ -1025,14 +1422,14 @@
                                 id: equipeID,
                                 day: bestSlot.day,
                                 hour: bestSlot.hour,
-                                members: membersWithTypes, 
+                                members: membersWithTypes,
                                 composition: combo.label
                             });
-                            updatePersonsParticipation(teamResult.pickedPersons);
+                            updatePersonsParticipation(teamResult.pickedPersons); // Now update actual counts
                             equipeID++;
                             formedTeamsCount++;
                             teamFormedInThisSlot = true;
-                            break; 
+                            break;
                         }
                     }
                 }
@@ -1041,7 +1438,7 @@
                     console.warn(`Impossible de former une équipe pour le créneau ${bestSlot.day} ${bestSlot.hour} malgré les joueurs disponibles.`);
                 }
             }
-            
+
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
@@ -1057,9 +1454,9 @@
                  showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
             }
 
-            saveData();
-            renderEquipesTable(); 
-            renderPersonnesTable(); 
+            await saveData(); // Save the new state with generated teams and updated participations
+            renderEquipesTable();
+            renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
         }
 
@@ -1090,21 +1487,21 @@
 
                         return Math.random() - 0.5;
                     });
-                
+
                 for (const index of sortedCandidates) {
                     const person = personnes[index];
                     if (person.currentParticipations < person.maxParticipations || person.currentAide < person.maxAide) {
                         return index;
                     }
                 }
-                return -1; 
+                return -1;
             };
 
             for (let i = 0; i < numEliteNeeded; i++) {
                 const personIndex = pickFromDispo(tempEliteDispo, picked);
                 if (personIndex !== -1) {
                     picked.push(personIndex);
-                    tempEliteDispo.splice(tempEliteDispo.indexOf(personIndex), 1); 
+                    tempEliteDispo.splice(tempEliteDispo.indexOf(personIndex), 1);
                 } else {
                     return { success: false, pickedPersons: [] };
                 }
@@ -1114,12 +1511,12 @@
                 const personIndex = pickFromDispo(tempNormalDispo, picked);
                 if (personIndex !== -1) {
                     picked.push(personIndex);
-                    tempNormalDispo.splice(tempNormalDispo.indexOf(personIndex), 1); 
+                    tempNormalDispo.splice(tempNormalDispo.indexOf(personIndex), 1);
                 } else {
-                    return { success: false, pickedPersons: [] }; 
+                    return { success: false, pickedPersons: [] };
                 }
             }
-            
+
             return { success: picked.length === (numEliteNeeded + numNormalNeeded), pickedPersons: picked };
         }
 
@@ -1135,10 +1532,10 @@
                 }
             });
         }
-        
+
         function renderEquipesTable() {
             equipesResultsContainer.innerHTML = '';
-            
+
             if (equipes.length === 0) {
                 equipesResultsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>';
                 return;
@@ -1176,15 +1573,15 @@
                 <th>P4</th>
                 <th>P5</th>
                 <th>Comp.</th>
-            `; 
+            `;
 
             const tbody = table.createTBody();
             sortedEquipes.forEach(team => {
                 const row = tbody.insertRow();
                 row.insertCell().textContent = `Équipe ${team.id}`;
-                row.insertCell().textContent = team.day; 
-                row.insertCell().textContent = team.hour; 
-                
+                row.insertCell().textContent = team.day;
+                row.insertCell().textContent = team.hour;
+
                 // Display player name and type (Participation/Aide)
                 team.members.forEach(member => {
                     const cell = row.insertCell();
@@ -1213,7 +1610,7 @@
 
         // --- FONCTIONS DE RÉINITIALISATION ---
 
-        function resetParticipationCounters(showConfirmation = true) {
+        async function resetParticipationCounters(showConfirmation = true) {
             if (showConfirmation && !confirm("Voulez-vous réinitialiser les compteurs de participation (Part. Actuelle, Aide Actuelle) de tous les participants et effacer les équipes générées ? Les participants et leurs disponibilités seront conservés.")) {
                 return;
             }
@@ -1221,8 +1618,8 @@
                 p.currentParticipations = 0;
                 p.currentAide = 0;
             });
-            equipes = []; 
-            saveData();
+            equipes = [];
+            await saveData(); // Save the reset state to the backend
             renderPersonnesTable();
             renderEquipesTable();
             if (showConfirmation) {
@@ -1230,34 +1627,42 @@
             }
         }
 
-        function resetAllData() {
-            if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) ? Cette action est irréversible.")) {
-                localStorage.clear();
-                personnes = [];
-                equipes = [];
-                renderPersonnesTable();
-                renderEquipesTable();
-                renderCalendar(); 
-                showToast("Toutes les données ont été réinitialisées.", 'success');
+        async function resetAllData() {
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) POUR VOTRE COMPTE ? Cette action est irréversible.")) {
+                if (currentLoggedUser) {
+                    // For a real full reset for the user, you'd need a backend API endpoint like /api/deleteUserData/:username
+                    // For now, we clear local data and trigger a reload, which will load an empty state from server if no data
+                    // or recreate default profile if it was deleted.
+                    personnes = [];
+                    equipes = [];
+                    await saveData(); // Save empty state to backend
+                    showToast("Toutes les données de votre compte ont été réinitialisées.", 'success');
+                    await loadData(); // Reload will create default profile if it doesn't exist
+                    renderAllUI();
+                } else {
+                    showToast("Aucun utilisateur connecté pour réinitialiser les données.", 'error');
+                }
             }
         }
 
         // --- ÉVÉNEMENTS ---
+        // Login event listeners
+        loginBtn.addEventListener('click', login);
+        registerBtn.addEventListener('click', register);
+        logoutBtn.addEventListener('click', logout);
+
         personneForm.addEventListener('submit', addUpdatePerson);
-        calendarPersonSelector.addEventListener('change', renderCalendar); 
-        
+        calendarPersonSelector.addEventListener('change', renderCalendar);
+
         generateTeamsBtn.addEventListener('click', generateTeams);
         clearPersonFormBtn.addEventListener('click', clearPersonForm);
-        saveAvailabilitiesBtn.addEventListener('click', saveAvailabilities); 
-        resetParticipationBtn.addEventListener('click', () => resetParticipationCounters(true)); 
+        saveAvailabilitiesBtn.addEventListener('click', saveAvailabilities);
+        resetParticipationBtn.addEventListener('click', () => resetParticipationCounters(true));
         resetAllDataBtn.addEventListener('click', resetAllData);
 
         // --- INITIALISATION AU CHARGEMENT DE LA PAGE ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadData();
-            renderPersonnesTable();
-            renderEquipesTable();
-            renderCalendar(); 
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkLoginStatus(); // Check login status on page load and load data
         });
     </script>
 </body>
