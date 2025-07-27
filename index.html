@@ -637,7 +637,7 @@
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
-        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
+        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); // Re-added
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
@@ -1020,7 +1020,7 @@
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
-                    cell.onclick = toggleAvailability; // Re-attached click handler
+                    cell.onclick = toggleAvailability;
                     calendarGrid.appendChild(cell);
                 });
             });
@@ -1037,8 +1037,7 @@
             if (e.target.classList.contains('availability-cell')) {
                 isDragging = true;
                 startCell = e.target;
-                // Determine toggleValue based on the starting cell's current state
-                toggleValue = !e.target.classList.contains('oui'); 
+                toggleValue = !e.target.classList.contains('oui'); // Invert current state of starting cell
                 
                 clearDragHighlights(); // Clear any previous highlights
                 startCell.classList.add('drag-highlight'); // Highlight the starting cell
@@ -1080,11 +1079,25 @@
                         cell.classList.add('non');
                         cell.classList.remove('oui');
                     }
-                    // Text content (count) is NOT directly changed here, it will be updated on renderCalendar
+                    // Update text content for these cells immediately after drag
+                    // This relies on slotDensity being up-to-date, so it reflects local changes
+                    const day = cell.dataset.day;
+                    const hour = cell.dataset.hour;
+                    let newDensityCount = 0;
+                    // Recalculate density for this specific cell without full render
+                    personnes.forEach(p => {
+                        // We need to update the data model *first* for the selected person
+                        // then recalculate the density based on the updated model for all people.
+                        // This part is better handled by a full re-render after saving.
+                        // For immediate feedback after drag, we'll just toggle the color.
+                        // The counts will be correct after save and renderCalendar call.
+                        newDensityCount += (p.disponibilites[day] && p.disponibilites[day][hour]) ? 1 : 0;
+                    });
+                    cell.textContent = newDensityCount; // Update text content to new count
                 });
                 clearDragHighlights(); // Ensure all highlights are removed
                 startCell = null; // Reset start cell
-                // The values are now changed in the DOM (classes). User clicks Save.
+                // Don't call saveAvailabilities here, let user click the save button
             }
         });
 
@@ -1133,13 +1146,11 @@
                 cell.classList.toggle('oui');
                 cell.classList.toggle('non');
 
-                // Update currentPerson's availability in data model temporarily for immediate feedback
+                // Update currentPerson's availability in data model
                 currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
 
-                // Update density count on this cell temporarily (until full re-render on save)
-                const isNowAvailable = cell.classList.contains('oui');
+                // Recalculate and update density count for this specific cell immediately
                 let newDensityCount = 0;
-                // Recalculate density for this specific cell without full render
                 personnes.forEach(p => {
                     if (p.disponibilites[day] && p.disponibilites[day][hour]) {
                         newDensityCount++;
@@ -1148,6 +1159,7 @@
                 cell.textContent = newDensityCount; // Update text content to new count
                 
                 // Update tooltip
+                const isNowAvailable = cell.classList.contains('oui');
                 cell.title = `Disponibles: ${newDensityCount} (${isNowAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
             }
         }
@@ -1160,23 +1172,20 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            // Reconstruct current person's disponibilites from the DOM classes, if drag-select was used
+            // Reconstruct current person's disponibilites from the DOM classes.
+            // This is crucial because drag-select changes classes directly in the DOM.
             currentPerson.disponibilites = generateEmptyAvailabilities(); 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
                 const day = cell.dataset.day;
                 const hour = cell.dataset.hour;
-                // Only consider cells that belong to the current selected person for saving
-                // Note: If a cell is part of a drag-select, its class is changed.
-                // We assume currentPerson's data model is updated via toggleAvailability for single clicks
-                // For drag-select, the DOM classes are the source of truth here.
                 currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
             });
 
 
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
-            // After saving, re-render the calendar to update all counts
+            // After saving, re-render the calendar to update all counts (displayOptimalSlots also calls this)
             renderCalendar(); 
         }
 
@@ -1197,7 +1206,12 @@
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
-            // No longer reading numTeams from input, generating maximum possible
+            const numTeams = parseInt(numTeamsToGenerateInput.value); 
+            if (isNaN(numTeams) || numTeams < 1) {
+                showToast("Veuillez entrer un nombre valide d'équipes à générer (au moins 1).", 'error');
+                return;
+            }
+
             equipes = [];
             resetParticipationCounters(false);
 
@@ -1213,13 +1227,11 @@
             ];
 
             const usedTimeSlots = new Set();
-            let teamFormedInCurrentIteration; 
+            
+            let formedTeamsCount = 0;
+            while (formedTeamsCount < numTeams) { 
+                let teamFormedInThisIteration = false; 
 
-            // Loop to generate maximum possible teams
-            do {
-                teamFormedInCurrentIteration = false; 
-                let bestSlot = null;
-                
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
@@ -1249,10 +1261,8 @@
                 }
 
                 if (availableSlots.length === 0) {
-                    if (equipes.length > 0) {
-                         showToast(`Impossible de former plus d'équipes. ${equipes.length} équipe(s) formée(s).`, 'info', 7000);
-                    } else {
-                         showToast(`Impossible de former des équipes. Aucun joueur disponible ou pas assez de créneaux.`, 'error', 7000);
+                    if (formedTeamsCount < numTeams) {
+                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de créneaux ou de joueurs disponibles.`, 'info', 7000);
                     }
                     break;
                 }
@@ -1297,18 +1307,21 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
+                            formedTeamsCount++; 
                             teamFormedInThisSlotAttempt = true;
-                            teamFormedInCurrentIteration = true; 
                             break; 
                         }
                     }
                 }
 
                 if (!teamFormedInThisSlotAttempt) {
-                    break; 
+                    if (formedTeamsCount < numTeams) {
+                        showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de combinaisons possibles.`, 'info', 7000);
+                    }
+                    break;
                 }
 
-            } while (teamFormedInCurrentIteration);
+            } while (formedTeamsCount < numTeams);
 
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
@@ -1434,18 +1447,8 @@
             tableContainer.appendChild(table);
 
             const thead = table.createTHead();
-            const headerRow = thead.insertRow();
-            headerRow.innerHTML = `
-                <th>ID</th>
-                <th>Jour</th>
-                <th>Heure</th>
-                <th>P1</th>
-                <th>P2</th>
-                <th>P3</th>
-                <th>P4</th>
-                <th>P5</th>
-                <th>Comp.</th>
-            `;
+            const headerRow = thead.insertCell();
+            headerRow.colSpan = 9; // Spanning all columns for message if no data
 
             const tbody = table.createTBody();
             sortedEquipes.forEach(team => {
