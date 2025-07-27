@@ -100,7 +100,6 @@
         input[type="text"],
         input[type="number"],
         input[type="url"],
-        input[type="password"], /* Added for password input */
         select {
             width: calc(100% - 18px);
             padding: 8px;
@@ -399,79 +398,29 @@
             color: #555;
         }
 
-        /* Login Screen Styles */
+        /* Login Screen Styles (will be removed) */
         #loginScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-        }
-        .login-panel {
-            background-color: var(--panel-bg);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 8px 16px var(--shadow-color);
-            text-align: center;
-            width: 350px;
-            max-width: 90%;
-        }
-        .login-panel h2 {
-            color: var(--primary-color);
-            margin-bottom: 25px;
-            border-bottom: none;
-            font-size: 1.8em;
-        }
-        .login-panel input {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1em;
-        }
-        .login-panel button {
-            width: calc(50% - 10px);
-            padding: 10px 15px;
-            margin-bottom: 0;
-        }
-        .login-panel button:last-child {
-            margin-right: 0;
+            display: none; /* Hide if not used */
         }
         .main-content-wrapper {
-            display: none; /* Hidden by default until logged in */
+            display: block; /* Show content by default if no login */
         }
         #userInfo {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            font-size: 0.9em;
-            color: var(--text-color);
-            font-weight: bold;
+            display: none; /* Hide if no current user */
+        }
+        #logoutBtn {
+            display: none; /* Hide if no logout functionality */
         }
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
 
-    <div id="loginScreen">
-        <div class="login-panel">
-            <h2>Connexion / Inscription</h2>
-            <input type="text" id="usernameInput" placeholder="Nom d'utilisateur" required>
-            <input type="password" id="passwordInput" placeholder="Mot de passe" required>
-            <button id="loginBtn">Se connecter</button>
-            <button id="registerBtn" class="secondary">S'inscrire</button>
-        </div>
-    </div>
+    <div id="loginScreen" style="display: none;"></div>
 
     <div class="main-content-wrapper" id="mainContentWrapper">
-        <div id="userInfo">Connecté : <span id="currentUsername"></span></div>
-        <button id="logoutBtn" class="reset" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">Déconnexion</button>
+        <div id="userInfo" style="display: none;"></div>
+        <button id="logoutBtn" style="display: none;"></button>
 
         <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
 
@@ -582,16 +531,7 @@
         const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`);
 
         // --- SÉLECTEURS DU DOM ---
-        // Login elements
-        const loginScreen = document.getElementById('loginScreen');
-        const usernameInput = document.getElementById('usernameInput');
-        const passwordInput = document.getElementById('passwordInput');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const mainContentWrapper = document.getElementById('mainContentWrapper');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const currentUsernameSpan = document.getElementById('currentUsername'); // Added for pseudo display
-
+        // Removed login elements
         const personneForm = document.getElementById('personForm');
         const personNameInput = document.getElementById('personName');
         const baseAPInput = document.getElementById('baseAP');
@@ -604,7 +544,7 @@
 
         const calendarPersonSelector = document.getElementById('calendarPersonSelector');
         const calendarGrid = document.getElementById('calendarGrid');
-        const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn'); // For Calendar
+        const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
 
         const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
         const teamCompositionFilter = document.getElementById('teamCompositionFilter');
@@ -621,6 +561,7 @@
 
         // --- URL DE VOTRE BACKEND RENDER.COM ---
         // REMPLACEZ CECI PAR L'URL RÉELLE DE VOTRE SERVICE WEB DÉPLOYÉ SUR RENDER.COM
+        // ATTENTION: Sans authentification, la donnée est partagée.
         const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com';
 
         // --- TOAST NOTIFICATIONS ---
@@ -640,142 +581,17 @@
             }, duration);
         }
 
-        // --- AUTHENTIFICATION ---
-        let currentLoggedUser = null; // Variable pour stocker le nom de l'utilisateur connecté
-
-        function loadUsers() {
-            try {
-                const storedUsers = localStorage.getItem('users');
-                return storedUsers ? JSON.parse(storedUsers) : {};
-            } catch (e) {
-                console.error("Erreur lors du chargement des utilisateurs (localStorage):", e);
-                return {};
-            }
-        }
-
-        function saveUsers(users) {
-            try {
-                localStorage.setItem('users', JSON.stringify(users));
-            } catch (e) {
-                showToast("Erreur lors de la sauvegarde des utilisateurs (localStorage). L'espace de stockage local est peut-être plein.", 'error');
-                console.error("Local storage save error (users):", e);
-            }
-        }
-
-        async function login() {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-
-            if (!username || !password) {
-                showToast("Veuillez entrer un nom d'utilisateur et un mot de passe.", 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BACKEND_API_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    localStorage.setItem('currentUser', username);
-                    currentLoggedUser = username;
-                    currentUsernameSpan.textContent = username;
-                    loginScreen.style.display = 'none';
-                    mainContentWrapper.style.display = 'block';
-                    showToast(`Bienvenue, ${username} !`, 'success');
-                    await loadData(); // Charger les données après la connexion réussie
-                    renderAllUI();
-                } else {
-                    showToast(data.message || 'Erreur de connexion.', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur réseau/API lors de la connexion:', error);
-                showToast('Impossible de se connecter au serveur backend. Vérifiez votre connexion ou l\'URL du backend.', 'error');
-            }
-        }
-
-        async function register() {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-
-            if (!username || !password) {
-                showToast("Veuillez entrer un nom d'utilisateur et un mot de passe.", 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BACKEND_API_URL}/api/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showToast(data.message || `Compte "${username}" créé avec succès ! Vous pouvez maintenant vous connecter.`, 'success');
-                    usernameInput.value = '';
-                    passwordInput.value = '';
-                } else {
-                    showToast(data.message || 'Erreur lors de l\'inscription.', 'error');
-                }
-            } catch (error) {
-                console.error('Erreur réseau/API lors de l\'inscription:', error);
-                showToast('Impossible de se connecter au serveur backend. Vérifiez votre connexion ou l\'URL du backend.', 'error');
-            }
-        }
-
-        function logout() {
-            if (confirm("Voulez-vous vraiment vous déconnecter ?")) {
-                localStorage.removeItem('currentUser');
-                currentLoggedUser = null;
-                currentUsernameSpan.textContent = '';
-                loginScreen.style.display = 'flex';
-                mainContentWrapper.style.display = 'none';
-                usernameInput.value = '';
-                passwordInput.value = '';
-                showToast("Déconnexion réussie.", 'info');
-                // Clear data displayed after logout, as it's user-specific
-                personnes = [];
-                equipes = [];
-                renderAllUI();
-            }
-        }
-
-        async function checkLoginStatus() {
-            const currentUser = localStorage.getItem('currentUser');
-            if (currentUser) {
-                currentLoggedUser = currentUser;
-                currentUsernameSpan.textContent = currentUser;
-                loginScreen.style.display = 'none';
-                mainContentWrapper.style.display = 'block';
-                showToast(`Connecté en tant que ${currentUser}.`, 'info', 2000);
-                await loadData(); // Charger les données au démarrage si déjà connecté
-                renderAllUI();
-            } else {
-                loginScreen.style.display = 'flex';
-                mainContentWrapper.style.display = 'none';
-            }
-        }
-        // --- FIN AUTHENTIFICATION ---
-
         // --- FONCTIONS UTILITAIRES DE SAUVEGARDE/CHARGEMENT VIA BACKEND ---
+        // Note: Sans authentification, toutes les données sont partagées globalement
+        // car il n'y a pas de 'currentLoggedUser' pour les isoler.
         async function saveData() {
-            if (!currentLoggedUser) {
-                console.warn("Pas d'utilisateur connecté, impossible de sauvegarder les données.");
-                showToast("Veuillez vous connecter pour sauvegarder vos données.", 'error');
-                return;
-            }
             try {
+                // Envoyer les données au backend sans username spécifique car pas d'auth
                 const response = await fetch(`${BACKEND_API_URL}/api/saveData`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        username: currentLoggedUser,
+                        username: 'global_user', // Utilisateur générique pour le stockage global
                         personnes: personnes,
                         equipes: equipes
                     })
@@ -785,7 +601,6 @@
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Échec de la sauvegarde des données');
                 }
-                // showToast("Données sauvegardées sur le serveur.", 'success'); // Commenté car déjà appelé par d'autres actions
             } catch (error) {
                 console.error('Erreur lors de la sauvegarde des données sur le backend:', error);
                 showToast(`Erreur lors de la sauvegarde des données: ${error.message}`, 'error');
@@ -793,14 +608,9 @@
         }
 
         async function loadData() {
-            if (!currentLoggedUser) {
-                console.warn("Pas d'utilisateur connecté, impossible de charger les données.");
-                personnes = [];
-                equipes = [];
-                return;
-            }
             try {
-                const response = await fetch(`${BACKEND_API_URL}/api/loadData/${currentLoggedUser}`);
+                // Charger les données du backend pour l'utilisateur générique
+                const response = await fetch(`${BACKEND_API_URL}/api/loadData/global_user`);
 
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -817,16 +627,15 @@
                     if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
-                    if (typeof p.owner === 'undefined') p.owner = currentLoggedUser; // Assigner le propriétaire par défaut si non défini
-
+                    // Pas de 'owner' car pas d'authentification par utilisateur
+                    
                     // Migration des disponibilités 1h vers 2h si nécessaire
-                    const tempDispos = generateEmptyAvailabilities(); // Génère une structure 2h
-                    if (p.disponibilites) { // Si d'anciennes 'disponibilites' existent
+                    const tempDispos = generateEmptyAvailabilities();
+                    if (p.disponibilites) {
                         JOURS_SEMAINE.forEach(day => {
                             HEURES_JOUR.forEach(newHourSlot => {
                                 const oldHourStart = parseInt(newHourSlot.split('h-')[0]);
                                 let isAvailableInOldSlot = false;
-                                // Supposons que les anciennes données avaient des créneaux de 1h
                                 if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart}h`]) {
                                     isAvailableInOldSlot = true;
                                 }
@@ -842,40 +651,20 @@
                     if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
                     if (typeof p.currentAide === 'undefined') p.currentAide = 0;
                 });
-
-                // Assurez-vous que l'utilisateur connecté a bien un profil de participant
-                if (!personnes.some(p => p.owner === currentLoggedUser)) {
-                    personnes.push({
-                        nom: currentLoggedUser, // Le nom du participant est le nom d'utilisateur
-                        baseAP: 0,
-                        awakeningAP: 0,
-                        niveau: 'Normal',
-                        maxParticipations: 1,
-                        maxAide: 0,
-                        currentParticipations: 0,
-                        currentAide: 0,
-                        disponibilites: generateEmptyAvailabilities(),
-                        garmothLink: '',
-                        owner: currentLoggedUser // Marque comme appartenant à cet utilisateur
-                    });
-                    await saveData(); // Sauvegarder le nouveau participant sur le backend
-                }
-
-                // showToast("Données chargées depuis le serveur.", 'info'); // Commenté car appelé au démarrage
             } catch (error) {
                 console.error('Erreur lors du chargement des données depuis le backend:', error);
-                showToast(`Erreur lors du chargement des données: ${error.message}. Les données locales sont vides.`, 'error');
-                personnes = []; // Efface les données locales en cas d'erreur de chargement
+                showToast(`Erreur lors du chargement des données: ${error.message}. Les données sont vides.`, 'error');
+                personnes = [];
                 equipes = [];
             }
         }
 
-        // --- Render All UI Components (to be called after loadData) ---
+        // --- Render All UI Components ---
         function renderAllUI() {
             renderPersonnesTable();
             renderEquipesTable();
             renderCalendar();
-            clearPersonForm(); // Always clear the form after loading UI
+            clearPersonForm();
         }
 
 
@@ -919,16 +708,10 @@
                 const actionsCell = row.insertCell();
                 actionsCell.className = 'actions-cell';
 
-                const isOwner = (person.owner === currentLoggedUser); // Check ownership
-
+                // Sans authentification, tout le monde peut modifier/supprimer
                 const editBtn = document.createElement('button');
                 editBtn.textContent = 'Modif.';
-                editBtn.disabled = !isOwner; // Disable if not owner
                 editBtn.onclick = (e) => {
-                    if (!isOwner) { // Prevent action if disabled
-                        showToast("Vous ne pouvez modifier que votre propre profil.", 'error');
-                        return;
-                    }
                     e.stopPropagation();
                     editPerson(index);
                 };
@@ -937,12 +720,7 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = 'Suppr.';
                 deleteBtn.className = 'reset';
-                deleteBtn.disabled = !isOwner; // Disable if not owner
                 deleteBtn.onclick = (e) => {
-                    if (!isOwner) { // Prevent action if disabled
-                        showToast("Vous ne pouvez supprimer que votre propre profil.", 'error');
-                        return;
-                    }
                     e.stopPropagation();
                     deletePerson(index);
                 };
@@ -951,7 +729,7 @@
             updateCalendarPersonSelector();
         }
 
-        let editingPersonIndex = -1; // -1 means adding new person, not editing
+        let editingPersonIndex = -1;
 
         function updateCalculatedLevelDisplay() {
             const baseAP = parseInt(baseAPInput.value) || 0;
@@ -972,11 +750,6 @@
             const maxAide = parseInt(maxAideInput.value);
             const garmothLink = garmothLinkInput.value.trim();
 
-            if (!currentLoggedUser) {
-                showToast("Veuillez vous connecter pour gérer les participants.", 'error');
-                return;
-            }
-
             if (!nom) {
                 showToast("Le nom du participant ne peut pas être vide.", 'error');
                 return;
@@ -994,37 +767,25 @@
                 return;
             }
 
-            // Find the index of the participant owned by the current user
-            const currentUserPersonIndex = personnes.findIndex(p => p.owner === currentLoggedUser);
-            const isEditingCurrentUser = (editingPersonIndex !== -1 && personnes[editingPersonIndex].owner === currentLoggedUser);
-
-            if (currentUserPersonIndex !== -1 && nom !== currentLoggedUser && !isEditingCurrentUser) {
-                // If user already has a profile AND trying to add/modify someone else without being in edit mode for own profile
-                showToast("Vous ne pouvez gérer que votre propre profil de participant.", 'error');
-                clearPersonForm();
-                return;
-            }
-
-            // If user clicks "Ajouter / Mettre à jour" while no owner profile is loaded in form
-            // Or if they try to edit a different name in the form, but they are owner, it means they want to rename their profile
-            if (isEditingCurrentUser) { // User is editing their own profile
+            if (editingPersonIndex !== -1) {
                 const person = personnes[editingPersonIndex];
-                // Allow changing name, but ensure new name isn't taken by another user's profile
-                if (nom !== currentLoggedUser && personnes.some(p => p.nom === nom && p.owner !== currentLoggedUser)) {
-                    showToast("Ce nom de participant est déjà utilisé par un autre compte. Veuillez en choisir un autre.", 'error');
-                    return;
+                if (person.nom !== nom && personnes.some((p, idx) => p.nom === nom && idx !== editingPersonIndex)) {
+                       showToast("Ce nom de participant existe déjà. Veuillez en choisir un autre.", 'error');
+                       return;
                 }
-                person.nom = nom; // User can change their own name
+                person.nom = nom;
                 person.baseAP = baseAP;
                 person.awakeningAP = awakeningAP;
                 person.niveau = niveau;
                 person.maxParticipations = maxPart;
                 person.maxAide = maxAide;
                 person.garmothLink = garmothLink;
-                showToast(`Votre profil (${nom}) a été mis à jour avec succès !`, 'success');
-            } else if (currentUserPersonIndex === -1 && nom === currentLoggedUser) {
-                // This means the user's profile was somehow deleted or not created, and they're re-adding it
-                // Or they just filled the form with their username to create it.
+                showToast(`Participant "${nom}" mis à jour avec succès !`, 'success');
+            } else {
+                if (personnes.some(p => p.nom === nom)) {
+                    showToast("Ce nom de participant existe déjà. Veuillez le modifier ou mettre à jour l'existant.", 'error');
+                    return;
+                }
                 personnes.push({
                     nom: nom,
                     baseAP: baseAP,
@@ -1035,16 +796,9 @@
                     currentParticipations: 0,
                     currentAide: 0,
                     disponibilites: generateEmptyAvailabilities(),
-                    garmothLink: garmothLink,
-                    owner: currentLoggedUser // Mark as owned by current user
+                    garmothLink: garmothLink
                 });
-                showToast(`Votre profil (${nom}) a été créé avec succès !`, 'success');
-            } else {
-                // This should not be reachable if each user has exactly one profile.
-                // Or if we strictly want to prevent non-owner profile creation from here.
-                showToast("Vous ne pouvez créer/modifier que votre propre profil de participant.", 'error');
-                clearPersonForm();
-                return;
+                showToast(`Participant "${nom}" ajouté avec succès !`, 'success');
             }
 
             await saveData();
@@ -1054,13 +808,6 @@
 
         function editPerson(index) {
             const person = personnes[index];
-            const isOwner = (person.owner === currentLoggedUser);
-
-            if (!isOwner) {
-                showToast("Vous ne pouvez pas modifier le profil d'un autre participant. Vous pouvez le visualiser.", 'error');
-                clearPersonForm(); // Clear the form to avoid confusion
-                return;
-            }
 
             personNameInput.value = person.nom;
             baseAPInput.value = person.baseAP;
@@ -1072,38 +819,27 @@
             editingPersonIndex = index;
             addUpdatePersonBtn.textContent = 'Mettre à jour';
             personNameInput.focus();
-            showToast(`Modification de votre profil (${person.nom}).`, 'info', 2000);
+            showToast(`Modification de "${person.nom}".`, 'info', 2000);
 
-            // Enable inputs for owner
+            // Pas de désactivation/activation basée sur le propriétaire sans authentification
             personNameInput.disabled = false;
             baseAPInput.disabled = false;
             awakeningAPInput.disabled = false;
             maxParticipationsInput.disabled = false;
             maxAideInput.disabled = false;
             garmothLinkInput.disabled = false;
-            addUpdatePersonBtn.disabled = false; // Enable if it was disabled
+            addUpdatePersonBtn.disabled = false;
             clearPersonFormBtn.disabled = false;
         }
 
         async function deletePerson(index) {
-            const person = personnes[index];
-            const isOwner = (person.owner === currentLoggedUser);
-
-            if (!isOwner) {
-                showToast("Vous ne pouvez pas supprimer le profil d'un autre participant.", 'error');
-                return;
-            }
-            if (confirm(`Êtes-vous sûr de vouloir supprimer votre profil de participant "${person.nom}" ? Cette action est irréversible.`)) {
-                // To delete from backend, we need a specific API route.
-                // For now, we'll remove it locally and then save, which will overwrite.
-                // A true delete would be: await fetch(`${BACKEND_API_URL}/api/deleteParticipant/${person.nom}`, method: 'DELETE')
+            const personName = personnes[index].nom;
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le participant "${personName}" ? Cette action est irréversible.`)) {
                 personnes.splice(index, 1);
-                await saveData(); // Save the new state (without the deleted person)
+                await saveData();
                 renderPersonnesTable();
-                showToast(`Votre profil de participant "${person.nom}" a été supprimé.`, 'success');
+                showToast(`Participant "${personName}" supprimé.`, 'success');
 
-                // After deleting their own profile, if they were the only participant for this user
-                // the loadData will recreate a default one for them.
                 await loadData();
                 renderAllUI();
             }
@@ -1111,7 +847,7 @@
 
         function clearPersonForm() {
             personneForm.reset();
-            personNameInput.value = currentLoggedUser || ''; // Pre-fill name with username if logged in
+            personNameInput.value = '';
             baseAPInput.value = 0;
             awakeningAPInput.value = 0;
             personLevelSelect.value = 'Normal';
@@ -1121,26 +857,15 @@
             editingPersonIndex = -1;
             addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
 
-            // Disable inputs if not editing current user's profile
-            const currentUserPerson = personnes.find(p => p.owner === currentLoggedUser);
-            if (currentUserPerson && currentUserPerson.nom !== personNameInput.value) { // If form is not showing their profile
-                 personNameInput.disabled = true;
-                 baseAPInput.disabled = true;
-                 awakeningAPInput.disabled = true;
-                 maxParticipationsInput.disabled = true;
-                 maxAideInput.disabled = true;
-                 garmothLinkInput.disabled = true;
-                 addUpdatePersonBtn.disabled = true; // Disable if they can't add/update someone else
-            } else { // If form is showing their profile or new profile for them
-                 personNameInput.disabled = false;
-                 baseAPInput.disabled = false;
-                 awakeningAPInput.disabled = false;
-                 maxParticipationsInput.disabled = false;
-                 maxAideInput.disabled = false;
-                 garmothLinkInput.disabled = false;
-                 addUpdatePersonBtn.disabled = false;
-            }
-            clearPersonFormBtn.disabled = false; // Always allow clearing the form
+            // Pas de désactivation/activation basée sur le propriétaire sans authentification
+            personNameInput.disabled = false;
+            baseAPInput.disabled = false;
+            awakeningAPInput.disabled = false;
+            maxParticipationsInput.disabled = false;
+            maxAideInput.disabled = false;
+            garmothLinkInput.disabled = false;
+            addUpdatePersonBtn.disabled = false;
+            clearPersonFormBtn.disabled = false;
         }
 
         // --- GESTION DES DISPONIBILITÉS (CALENDRIER) ---
@@ -1162,34 +887,26 @@
             if (personnes.length === 0) {
                 calendarPersonSelector.innerHTML = '<option value="">-- Aucun participant --</option>';
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Ajoutez un participant pour gérer ses disponibilités.</div>';
-                calendarPersonSelector.disabled = true;
-                saveAvailabilitiesBtn.disabled = true;
-                calendarGrid.classList.add('read-only');
+                calendarPersonSelector.disabled = false; // Enabled, as no owner check
+                saveAvailabilitiesBtn.disabled = false; // Enabled
+                calendarGrid.classList.remove('read-only'); // Not read-only
                 return;
             }
 
             let foundLastSelection = false;
-            let currentUserPersonIndexInList = -1;
-
             personnes.forEach((person, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = person.nom;
                 calendarPersonSelector.appendChild(option);
-                if (person.owner === currentLoggedUser) {
-                    currentUserPersonIndexInList = index; // Store current user's profile index
-                }
                 if (index.toString() === lastSelectedValue) {
                     foundLastSelection = true;
                 }
             });
 
-            // Select current user's profile by default in the calendar
-            if (currentUserPersonIndexInList !== -1) {
-                calendarPersonSelector.value = currentUserPersonIndexInList;
-            } else if (foundLastSelection) { // Fallback to previous selection if user's profile not found
+            if (foundLastSelection) {
                 calendarPersonSelector.value = lastSelectedValue;
-            } else { // Fallback to first person if no previous selection
+            } else {
                 calendarPersonSelector.value = personnes.length > 0 ? 0 : '';
             }
 
@@ -1203,22 +920,14 @@
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Veuillez sélectionner un participant pour afficher son calendrier.</div>';
-                calendarGrid.classList.add('read-only');
-                saveAvailabilitiesBtn.disabled = true;
+                calendarGrid.classList.remove('read-only'); // Not read-only
+                saveAvailabilitiesBtn.disabled = false; // Enabled
                 return;
             }
-            const currentPersonInCalendar = personnes[selectedIndex]; // Renamed to avoid conflict
+            const currentPersonInCalendar = personnes[selectedIndex];
 
-            const isOwner = (currentPersonInCalendar.owner === currentLoggedUser);
-
-            // Set calendar to read-only mode if not the owner
-            if (!isOwner) {
-                calendarGrid.classList.add('read-only');
-                saveAvailabilitiesBtn.disabled = true;
-            } else {
-                calendarGrid.classList.remove('read-only');
-                saveAvailabilitiesBtn.disabled = false;
-            }
+            calendarGrid.classList.remove('read-only'); // Not read-only
+            saveAvailabilitiesBtn.disabled = false; // Enabled
 
             const emptyCorner = document.createElement('div');
             calendarGrid.appendChild(emptyCorner);
@@ -1248,23 +957,13 @@
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
-                    // Only attach click handler if owner
-                    if (isOwner) {
-                        cell.onclick = toggleAvailability;
-                    }
+                    cell.onclick = toggleAvailability; // Always attach click handler
                     calendarGrid.appendChild(cell);
                 });
             });
         }
 
         function toggleAvailability(event) {
-            // Check if the calendar itself is in read-only mode, or if the save button is disabled
-            // This is a redundant check, but safer.
-            if (calendarGrid.classList.contains('read-only') || saveAvailabilitiesBtn.disabled) {
-                showToast("Vous ne pouvez modifier que votre propre calendrier de disponibilités.", 'error');
-                return;
-            }
-
             const cell = event.target;
             cell.classList.toggle('oui');
             cell.classList.toggle('non');
@@ -1282,11 +981,6 @@
                 return;
             }
             const currentPersonInCalendar = personnes[selectedIndex];
-
-            if (currentPersonInCalendar.owner !== currentLoggedUser) {
-                showToast("Vous ne pouvez pas sauvegarder les disponibilités d'un autre participant.", 'error');
-                return;
-            }
 
             currentPersonInCalendar.disponibilites = generateEmptyAvailabilities();
 
@@ -1628,29 +1322,22 @@
         }
 
         async function resetAllData() {
-            if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) POUR VOTRE COMPTE ? Cette action est irréversible.")) {
-                if (currentLoggedUser) {
-                    // For a real full reset for the user, you'd need a backend API endpoint like /api/deleteUserData/:username
-                    // For now, we clear local data and trigger a reload, which will load an empty state from server if no data
-                    // or recreate default profile if it was deleted.
-                    personnes = [];
-                    equipes = [];
-                    await saveData(); // Save empty state to backend
-                    showToast("Toutes les données de votre compte ont été réinitialisées.", 'success');
-                    await loadData(); // Reload will create default profile if it doesn't exist
-                    renderAllUI();
-                } else {
-                    showToast("Aucun utilisateur connecté pour réinitialiser les données.", 'error');
-                }
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) ? Cette action est irréversible.")) {
+                // Pour cette version sans authentification, "resetAllData" va vider tout le stockage global
+                // Pour une base de données partagée, cela effacera les données de TOUS les utilisateurs.
+                // S'il fallait une réinitialisation par utilisateur, il faudrait une API backend dédiée.
+
+                // Ici, nous effaçons les données localement et sauvegardons un état vide au backend.
+                personnes = [];
+                equipes = [];
+                await saveData(); // Sauvegarde l'état vide au backend
+                showToast("Toutes les données ont été réinitialisées.", 'success');
+                await loadData(); // Recharge les données (ce sera vide initialement)
+                renderAllUI();
             }
         }
 
         // --- ÉVÉNEMENTS ---
-        // Login event listeners
-        loginBtn.addEventListener('click', login);
-        registerBtn.addEventListener('click', register);
-        logoutBtn.addEventListener('click', logout);
-
         personneForm.addEventListener('submit', addUpdatePerson);
         calendarPersonSelector.addEventListener('change', renderCalendar);
 
@@ -1662,7 +1349,8 @@
 
         // --- INITIALISATION AU CHARGEMENT DE LA PAGE ---
         document.addEventListener('DOMContentLoaded', async () => {
-            await checkLoginStatus(); // Check login status on page load and load data
+            await loadData(); // Charge les données au démarrage
+            renderAllUI();
         });
     </script>
 </body>
