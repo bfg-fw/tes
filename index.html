@@ -112,21 +112,23 @@
             background-color: #f8f9fa;
         }
 
-        /* NEW: Two columns for participation inputs */
-        .input-group {
+        /* NEW: Styles for 3-column AP/Level layout */
+        .ap-level-group {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns, equal width */
+            gap: 10px; /* Space between columns */
+            margin-bottom: 15px; /* Adjust as needed for spacing below the group */
         }
-        .input-group > div {
+        .ap-level-group > div {
             display: flex;
             flex-direction: column;
         }
-        .input-group input {
-            width: 100%; /* Adjust width within its grid column */
-            margin-bottom: 0; /* Remove default margin-bottom */
+        .ap-level-group input,
+        .ap-level-group select {
+            width: 100%; /* Fill the grid column */
+            margin-bottom: 0; /* Remove default margin-bottom from inputs/selects */
         }
-        /* End NEW */
+        /* END NEW */
         
         input[type="checkbox"] {
             margin-bottom: 15px;
@@ -452,18 +454,23 @@
                     <label for="personName">Nom :</label>
                     <input type="text" id="personName" placeholder="Nom du participant" required>
 
-                    <label for="baseAP">AP de base :</label>
-                    <input type="number" id="baseAP" min="0" value="0" required>
-
-                    <label for="awakeningAP">AP d'éveil :</label>
-                    <input type="number" id="awakeningAP" min="0" value="0" required>
-
-                    <label for="personLevel">Niveau (calculé) :</label>
-                    <select id="personLevel" disabled> 
-                        <option value="Élite">Élite</option>
-                        <option value="Normal">Normal</option>
-                    </select>
-
+                    <div class="ap-level-group">
+                        <div>
+                            <label for="baseAP">AP de base :</label>
+                            <input type="number" id="baseAP" min="0" value="0" required>
+                        </div>
+                        <div>
+                            <label for="awakeningAP">AP d'éveil :</label>
+                            <input type="number" id="awakeningAP" min="0" value="0" required>
+                        </div>
+                        <div>
+                            <label for="personLevel">Niveau (calculé) :</label>
+                            <select id="personLevel" disabled> 
+                                <option value="Élite">Élite</option>
+                                <option value="Normal">Normal</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="input-group"> <div>
                             <label for="maxParticipations">Part. Max (hebdo) :</label>
                             <input type="number" id="maxParticipations" min="1" value="1" required>
@@ -472,7 +479,9 @@
                             <label for="maxAide">Aides Max (hebdo) :</label>
                             <input type="number" id="maxAide" min="0" value="0" required>
                         </div>
-                    </div> <label for="garmothLink">Lien Garmoth.com (optionnel) :</label>
+                    </div> 
+
+                    <label for="garmothLink">Lien Garmoth.com (optionnel) :</label>
                     <input type="url" id="garmothLink" placeholder="https://garmoth.com/character/...">
 
                     <button type="submit" id="addUpdatePersonBtn">Ajouter / Mettre à jour</button>
@@ -513,7 +522,8 @@
                         </div>
                 </div>
                 <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
-            </div>
+                <button type="button" id="resetCalendarBtn" class="tertiary" style="margin-top: 10px;">Réinitialiser Calendrier</button>
+                </div>
 
             <div class="panel">
                 <h2>Génération d'Équipes Hebdomadaires</h2>
@@ -526,8 +536,7 @@
                 <div id="equipesResultsContainer">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
                 </div>
-                <button id="resetAllDataBtn" class="reset" style="margin-top: 20px;">Réinitialiser Toutes les Données</button> 
-            </div>
+                </div>
         </div>
     </div>
 
@@ -553,6 +562,7 @@
         const calendarPersonSelector = document.getElementById('calendarPersonSelector'); 
         const calendarGrid = document.getElementById('calendarGrid'); 
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
+        const resetCalendarBtn = document.getElementById('resetCalendarBtn'); // New button element
 
         // Removed numTeamsToGenerateInput
         // Removed teamCompositionFilter
@@ -562,7 +572,8 @@
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
-        const resetAllDataBtn = document.getElementById('resetAllDataBtn');
+        // Removed resetAllDataBtn DOM element completely now
+        // const resetAllDataBtn = document.getElementById('resetAllDataBtn'); 
 
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
@@ -598,7 +609,7 @@
         // car il n'y a pas de 'currentLoggedUser' pour les isoler.
         async function saveData() {
             try {
-                const dataToSend = { // Cette constante est créée juste avant l'envoi
+                const dataToSend = { 
                     username: 'global_user', // Utilisateur générique pour le stockage global
                     personnes: personnes,
                     equipes: equipes
@@ -641,7 +652,6 @@
                     if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
-                    // Pas de 'owner' car pas d'authentification par utilisateur
                     
                     // Migration des disponibilités 1h vers 2h si nécessaire
                     const tempDispos = generateEmptyAvailabilities();
@@ -981,14 +991,10 @@
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
-            const numTeams = parseInt(numTeamsToGenerateInput.value); // This input is removed, need to adapt
-            // Instead of numTeams, we will generate MAX possible teams.
-
             equipes = [];
-            resetParticipationCounters(false); // Resets current participations to 0
+            resetParticipationCounters(false);
 
             let equipeID = 1;
-            // const selectedCompositionFilter = teamCompositionFilter.value; // This filter is removed
 
             // Define priority for team compositions (always this order now)
             const TEAM_COMBINATIONS_PRIORITY = [
@@ -1067,6 +1073,7 @@
                     if (eliteInSlot.length >= combo.elite && normalInSlot.length >= combo.normal) {
                         const teamResult = tryPickPersons(eliteInSlot, normalInSlot, combo.elite, combo.normal);
                         if (teamResult.success) {
+                            // Determine if each picked player is a 'Participation' or 'Aide' for THIS specific team
                             const membersWithTypes = teamResult.pickedPersons.map(idx => {
                                 const person = personnes[idx];
                                 let type = '';
@@ -1312,13 +1319,31 @@
         clearPersonFormBtn.addEventListener('click', clearPersonForm);
         saveAvailabilitiesBtn.addEventListener('click', saveAvailabilities);
         resetParticipationBtn.addEventListener('click', () => resetParticipationCounters(true));
-        resetAllDataBtn.addEventListener('click', resetAllData);
+        resetCalendarBtn.addEventListener('click', resetCalendarForSelectedPerson); // New event listener
+        // Removed resetAllDataBtn event listener
+        // resetAllDataBtn.addEventListener('click', resetAllData); 
 
         // --- INITIALISATION AU CHARGEMENT DE LA PAGE ---
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData(); // Charge les données au démarrage
             renderAllUI();
         });
+
+        // NEW: Function to reset calendar for selected person
+        async function resetCalendarForSelectedPerson() {
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                showToast("Veuillez sélectionner un participant pour réinitialiser son calendrier.", 'error');
+                return;
+            }
+            const person = personnes[selectedIndex];
+            if (confirm(`Êtes-vous sûr de vouloir réinitialiser toutes les disponibilités de "${person.nom}" ?`)) {
+                person.disponibilites = generateEmptyAvailabilities();
+                await saveData(); // Save the updated person data
+                renderCalendar(); // Re-render calendar to show empty state
+                showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+            }
+        }
     </script>
 </body>
 </html>
