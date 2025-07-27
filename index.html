@@ -125,8 +125,8 @@
         }
         .ap-level-group input,
         .ap-level-group select {
-            width: 100%;
-            margin-bottom: 0;
+            width: 100%; 
+            margin-bottom: 0; 
         }
         
         /* Group for two columns (e.g., max participations/aides) */
@@ -264,12 +264,12 @@
         td.actions-cell button.reset {
             background-color: var(--danger-color);
         }
-        td.actions-cell a.button {
+        td.actions-cell a.button { 
             display: inline-block;
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
-            background-color: #6c5ce7;
+            background-color: #6c5ce7; 
             color: white;
             border: none;
             border-radius: 15px;
@@ -345,7 +345,7 @@
         .day-label-row {
             background-color: #d9edf7;
             font-weight: bold;
-            font-size: 0.9em; /* Increased font size for day labels */
+            font-size: 0.9em;
             text-align: left; 
             padding-left: 5px;
             padding-right: 5px; 
@@ -468,6 +468,25 @@
             font-weight: bold;
         }
         /* END NEW */
+        /* NEW: Style for optimal slots container */
+        .optimal-slots-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.85em;
+        }
+        .optimal-slot-item {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .optimal-slot-item span {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        /* END NEW */
     </style>
 </head>
 <body>
@@ -563,6 +582,11 @@
                 <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
                 <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
 
+                <h3>Créneaux Optimaux</h3>
+                <div id="optimalSlotsContainer" class="optimal-slots-container">
+                    <p style="text-align: center; color: #7f8c8d;">Générez les équipes pour voir les créneaux les plus prometteurs.</p>
+                </div>
+
                 <h3>Équipes générées pour la semaine</h3>
                 <div id="equipesResultsContainer">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
@@ -600,6 +624,7 @@
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
+        const optimalSlotsContainer = document.getElementById('optimalSlotsContainer'); // New container for optimal slots
 
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
@@ -675,23 +700,17 @@
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
                     
-                    const tempDispos = generateEmptyAvailabilities();
-                    if (p.disponibilites) {
-                        JOURS_SEMAINE.forEach(day => {
-                            HEURES_JOUR.forEach(newHourSlot => {
-                                const oldHourStart = parseInt(newHourSlot.split('h-')[0]);
-                                let isAvailableInOldSlot = false;
-                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart}h`]) {
-                                    isAvailableInOldSlot = true;
-                                }
-                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart + 1}h`]) {
-                                    isAvailableInOldSlot = true;
-                                }
-                                tempDispos[day][newHourSlot] = isAvailableInOldSlot;
-                            });
-                        });
+                    // --- CORRECTION / SIMPLIFICATION DE LA MIGRATION DES DISPONIBILITÉS ---
+                    // Si p.disponibilites existe et a la structure attendue de 2h, l'utiliser directement.
+                    // Sinon, générer un nouveau calendrier vide (ce qui gère aussi la migration implicitement si l'ancien est cassé).
+                    if (p.disponibilites && JOURS_SEMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
+                        // Data looks like valid 2h slots, use it directly (deep copy for safety)
+                        p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
+                    } else {
+                        // Old format or invalid, generate new empty structure
+                        p.disponibilites = generateEmptyAvailabilities();
                     }
-                    p.disponibilites = tempDispos;
+                    // --- FIN CORRECTION ---
 
                     if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
                     if (typeof p.currentAide === 'undefined') p.currentAide = 0;
@@ -710,6 +729,7 @@
             renderEquipesTable();
             renderCalendar();
             clearPersonForm();
+            displayOptimalSlots(); // Call this to update optimal slots on load
         }
 
 
@@ -921,7 +941,6 @@
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = person.nom;
-                // Make name bold in select options
                 option.classList.add('bold-name'); 
                 calendarPersonSelector.appendChild(option);
                 if (index.toString() === lastSelectedValue) {
