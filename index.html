@@ -329,6 +329,10 @@
             border: 1px solid #eee;
             box-sizing: border-box;
             white-space: nowrap;
+            /* NEW: Increased font size for numbers in cells */
+            font-size: 0.9em; 
+            font-weight: bold;
+            color: var(--text-color); /* Default text color for numbers */
         }
         /* Styles for drag selection highlighting */
         .availability-cell.drag-highlight {
@@ -375,9 +379,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-color);
-            font-size: 0.6em;
-            text-transform: uppercase;
+            color: var(--text-color); /* Text color for numbers */
+            font-size: 0.9em; /* Match font size for numbers */
+            font-weight: bold; /* Match font weight for numbers */
         }
 
         .availability-cell:hover {
@@ -386,14 +390,12 @@
 
         .availability-cell.oui {
             background-color: var(--secondary-color);
-            color: white;
-            font-weight: bold;
+            color: white; /* White text for "oui" */
         }
 
         .availability-cell.non {
             background-color: var(--danger-color);
-            color: white;
-            font-weight: bold;
+            color: white; /* White text for "non" */
         }
 
         /* Messages */
@@ -633,7 +635,6 @@
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
         // Removed numTeamsToGenerateInput
-        // const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); // This line is now removed
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
@@ -739,7 +740,7 @@
             renderEquipesTable();
             renderCalendar();
             clearPersonForm();
-            displayOptimalSlots(); // Call this to update optimal slots on load
+            displayOptimalSlots(); 
         }
 
 
@@ -985,6 +986,19 @@
                 calendarGrid.appendChild(hourLabel);
             });
             
+            // Calculate density for each slot (re-added for number display)
+            const slotDensity = {};
+            JOURS_SEMAINE.forEach(day => {
+                slotDensity[day] = {};
+                HEURES_JOUR.forEach(hour => {
+                    slotDensity[day][hour] = personnes.filter(p => p.disponibilites[day] && p.disponibilites[day][hour]).length;
+                });
+            });
+
+            // Thresholds for density visualization (used for tooltip, not color)
+            const UNDERLOADED_THRESHOLD = 5; 
+            const OVERLOADED_THRESHOLD = 15; 
+
             JOURS_SEMAINE.forEach(day => {
                 const dayLabel = document.createElement('div');
                 dayLabel.className = 'day-label-row';
@@ -995,16 +1009,23 @@
                     const cell = document.createElement('div');
                     cell.className = 'availability-cell';
                     const isAvailable = currentPerson.disponibilites[day] && currentPerson.disponibilites[day][hour];
+                    
+                    // Display the count inside the cell
+                    const densityCount = slotDensity[day][hour];
+                    cell.textContent = densityCount; // Show number of available people
+
                     if (isAvailable) {
                         cell.classList.add('oui');
-                        cell.textContent = 'Oui';
                     } else {
                         cell.classList.add('non');
-                        cell.textContent = 'Non';
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
                     cell.onclick = toggleAvailability;
+
+                    // Add density info to tooltip (title)
+                    cell.title = `Disponibles: ${densityCount} (${isAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
+
                     calendarGrid.appendChild(cell);
                 });
             });
@@ -1053,12 +1074,11 @@
                     if (toggleValue) {
                         cell.classList.add('oui');
                         cell.classList.remove('non');
-                        cell.textContent = 'Oui';
                     } else {
                         cell.classList.add('non');
                         cell.classList.remove('oui');
-                        cell.textContent = 'Non';
                     }
+                    // Text content (count) is updated only on renderCalendar
                 });
                 clearDragHighlights(); // Ensure all highlights are removed
                 startCell = null; // Reset start cell
@@ -1104,11 +1124,7 @@
                 const cell = event.target;
                 cell.classList.toggle('oui');
                 cell.classList.toggle('non');
-                if (cell.classList.contains('oui')) {
-                    cell.textContent = 'Oui';
-                } else {
-                    cell.textContent = 'Non';
-                }
+                // Text content (count) is updated only on renderCalendar
             }
         }
 
@@ -1130,6 +1146,8 @@
             });
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
+            // After saving, re-render the calendar to update all counts (as another person's availability affects global counts)
+            renderCalendar(); 
         }
 
         async function resetCalendarForSelectedPerson() {
@@ -1149,10 +1167,7 @@
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
-            // Revert to generating maximum possible teams
-            // const numTeams = parseInt(numTeamsToGenerateInput.value); // This line is now removed
-            // if (isNaN(numTeams) || numTeams < 1) { /* ... */ } // This block is removed
-
+            // No longer reading numTeams from input, generating maximum possible
             equipes = [];
             resetParticipationCounters(false);
 
@@ -1168,18 +1183,18 @@
             ];
 
             const usedTimeSlots = new Set();
-            let teamFormedThisOverallIteration; // Flag to indicate if any team was formed in the current loop pass
+            let teamFormedInCurrentIteration; // Flag to indicate if any team was formed in the current outer loop pass
 
             // Loop to generate maximum possible teams
             do {
-                teamFormedThisOverallIteration = false; // Reset flag for each outer iteration
-                let bestSlot = null; // No need for maxEligiblePlayersInSlot directly here, it's used in availableSlots sort
-
+                teamFormedInCurrentIteration = false; // Reset flag for each outer iteration
+                let bestSlot = null;
+                
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
                         const slotKey = `${day}_${hour}`;
-                        if (usedTimeSlots.has(slotKey)) continue;
+                        if (usedTimeSlots.has(slotKey)) continue; 
 
                         let eligiblePlayersInSlot = personnes.filter(p =>
                             p.disponibilites[day] && p.disponibilites[day][hour] &&
@@ -1211,7 +1226,7 @@
                 bestSlot = availableSlots[0];
                 usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
 
-                let teamFormedInThisSlotAttempt = false;
+                let teamFormedInThisSlotAttempt = false; // Flag for this specific slot attempt
                 const playersAvailableInBestSlot = personnes
                     .map((p, index) => ({ person: p, index: index }))
                     .filter(item =>
@@ -1247,21 +1262,18 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            // No formedTeamsCount increment here, as we loop until no more teams can be formed
                             teamFormedInThisSlotAttempt = true;
-                            teamFormedThisOverallIteration = true; // Set flag to true if a team was formed
-                            break;
+                            teamFormedInCurrentIteration = true; // Set flag to true if a team was formed
+                            break; 
                         }
                     }
                 }
 
                 if (!teamFormedInThisSlotAttempt) {
-                    // If no team could be formed in the best slot using any combo,
-                    // it means we cannot form any more teams in general with current players/slots/rules.
-                    break;
+                    break; // No more teams can be formed in this or subsequent iterations
                 }
 
-            } while (teamFormedThisOverallIteration); // Continue as long as we successfully form a team in an iteration
+            } while (teamFormedInCurrentIteration); // Continue as long as we successfully form a team in an iteration
 
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
@@ -1275,7 +1287,7 @@
             const participantsNotPlayed = allParticipantsWithAvailability.filter(p => p.currentParticipations === 0 && p.currentAide === 0);
 
             if (participantsNotPlayed.length > 0) {
-                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
+                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.length === 1 ? participantsNotPlayed[0].nom : participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
             }
 
             await saveData();
