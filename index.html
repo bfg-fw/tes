@@ -16,9 +16,6 @@
             --panel-bg: #ffffff;
             --border-color: #bdc3c7;
             --shadow-color: rgba(0, 0, 0, 0.1);
-            --underloaded-color: #ffe0b2; /* Light orange */
-            --optimal-color: #c8e6c9; /* Light green */
-            --overloaded-color: #bbdefb; /* Light blue */
         }
 
         body {
@@ -335,7 +332,6 @@
             background-color: #a7d9ed; /* Highlight color */
             border: 1px solid #3498db;
         }
-        /* END NEW */
         .calendar-grid.read-only .availability-cell {
             cursor: default;
         }
@@ -396,14 +392,6 @@
             color: white;
             font-weight: bold;
         }
-
-        /* Styles for availability density */
-        .availability-cell.density-underloaded { background-color: var(--underloaded-color); }
-        .availability-cell.density-optimal { background-color: var(--optimal-color); }
-        .availability-cell.density-overloaded { background-color: var(--overloaded-color); }
-        /* Preserve oui/non color over density background when applicable */
-        .availability-cell.oui { background-color: var(--secondary-color); }
-        .availability-cell.non { background-color: var(--danger-color); }
 
         /* Messages */
         .toast-container {
@@ -502,14 +490,13 @@
             font-weight: 700;
             color: var(--primary-color);
         }
-        /* NEW: Styles for type-participation and type-aide colors */
+        /* Styles for type-participation and type-aide colors */
         .player-type.type-participation {
             color: var(--secondary-color); /* Greenish */
         }
         .player-type.type-aide {
             color: var(--accent-color); /* Orangish */
         }
-        /* END NEW */
     </style>
 </head>
 <body>
@@ -1003,20 +990,8 @@
                 calendarGrid.appendChild(hourLabel);
             });
 
-            // Calculate density for each slot
-            const slotDensity = {};
-            JOURS_SEMAINE.forEach(day => {
-                slotDensity[day] = {};
-                HEURES_JOUR.forEach(hour => {
-                    slotDensity[day][hour] = personnes.filter(p => p.disponibilites[day] && p.disponibilites[day][hour]).length;
-                });
-            });
-
-            // Thresholds for density visualization
-            const UNDERLOADED_THRESHOLD = 5; // Less than 5 players available
-            const OPTIMAL_THRESHOLD_MIN = 5; // 5 to 15 players available
-            const OVERLOADED_THRESHOLD = 15; // More than 15 players available
-
+            // No density calculation or display in this version
+            
             JOURS_SEMAINE.forEach(day => {
                 const dayLabel = document.createElement('div');
                 dayLabel.className = 'day-label-row';
@@ -1037,19 +1012,6 @@
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
                     cell.onclick = toggleAvailability;
-
-                    // Add density class
-                    const densityCount = slotDensity[day][hour];
-                    if (densityCount < UNDERLOADED_THRESHOLD) {
-                        cell.classList.add('density-underloaded');
-                    } else if (densityCount >= OPTIMAL_THRESHOLD_MIN && densityCount <= OVERLOADED_THRESHOLD) {
-                        cell.classList.add('density-optimal');
-                    } else if (densityCount > OVERLOADED_THRESHOLD) {
-                        cell.classList.add('density-overloaded');
-                    }
-                    // Add density count as title/tooltip
-                    cell.title = `Disponibles: ${densityCount}`;
-
                     calendarGrid.appendChild(cell);
                 });
             });
@@ -1121,8 +1083,9 @@
         // Helper to get cells within a rectangular selection
         function getCellsInRect(start, end) {
             const cells = [];
-            const dayLabels = Array.from(calendarGrid.querySelectorAll('.day-label-row'));
-            const hourLabels = Array.from(calendarGrid.querySelectorAll('.hour-label-header'));
+            // Assuming current structure, day labels are first 7 divs in grid (row 0), hour labels are next 24 (row 0)
+            // No need to query dayLabels and hourLabels DOM elements just for their data-day/data-hour values.
+            // We use JOURS_SEMAINE and HEURES_JOUR constants to determine indices.
             
             const startDayIndex = JOURS_SEMAINE.indexOf(start.dataset.day);
             const startHourIndex = HEURES_JOUR.indexOf(start.dataset.hour);
@@ -1167,7 +1130,7 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            currentPerson.disponibilites = generateEmptyAvailabilities();
+            currentPerson.disponibilites = generateEmptyAvailabilities(); // Reset to clear potential old/invalid data
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
@@ -1177,7 +1140,7 @@
             });
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
-            displayOptimalSlots(); // Update optimal slots after saving new availability
+            // Removed displayOptimalSlots() call here as it's not present in this version
         }
 
         async function resetCalendarForSelectedPerson() {
@@ -1192,7 +1155,7 @@
                 await saveData(); 
                 renderCalendar(); 
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
-                displayOptimalSlots(); // Update optimal slots after resetting calendar
+                // Removed displayOptimalSlots() call here as it's not present in this version
             }
         }
 
@@ -1334,7 +1297,7 @@
             renderEquipesTable();
             renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
-            displayOptimalSlots(); 
+            // Removed displayOptimalSlots() call here as it's not present in this version
         }
 
         function tryPickPersons(availableEliteIndices, availableNormalIndices, numEliteNeeded, numNormalNeeded) {
