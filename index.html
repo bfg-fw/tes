@@ -579,28 +579,30 @@
         // Note: Sans authentification, toutes les données sont partagées globalement
         // car il n'y a pas de 'currentLoggedUser' pour les isoler.
         async function saveData() {
-            try {
-                // Envoyer les données au backend sans username spécifique car pas d'auth
-                const response = await fetch(`${BACKEND_API_URL}/api/saveData`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: 'global_user', // Utilisateur générique pour le stockage global
-                        personnes: personnes,
-                        equipes: equipes
-                    })
-                });
+    try {
+        const dataToSend = { // Cette constante est créée juste avant l'envoi
+            username: 'global_user', // Utilisateur générique pour le stockage global
+            personnes: personnes,
+            equipes: equipes
+        };
+        // C'est ICI que vous devez ajouter la ligne console.log
+        console.log('Données envoyées au backend:', JSON.stringify(dataToSend, null, 2)); // <<-- AJOUTEZ CETTE LIGNE
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Échec de la sauvegarde des données');
-                }
-            } catch (error) {
-                console.error('Erreur lors de la sauvegarde des données sur le backend:', error);
-                showToast(`Erreur lors de la sauvegarde des données: ${error.message}`, 'error');
-            }
+        const response = await fetch(`${BACKEND_API_URL}/api/saveData`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSend) // On utilise dataToSend ici
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Échec de la sauvegarde des données');
         }
-
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde des données sur le backend:', error);
+        showToast(`Erreur lors de la sauvegarde des données: ${error.message}`, 'error');
+    }
+}
         async function loadData() {
             try {
                 // Charger les données du backend pour l'utilisateur générique
