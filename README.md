@@ -1,1 +1,1564 @@
-V15
+V15 Fonctionnal but bug clic (TC) 20250727_20:08
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire d'Équipes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e67e22;
+            --danger-color: #e74c3c;
+            --bg-color: #ecf0f1;
+            --text-color: #2c3e50;
+            --panel-bg: #ffffff;
+            --border-color: #bdc3c7;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --underloaded-color: #ffe0b2; /* Light orange */
+            --optimal-color: #c8e6c9; /* Light green */
+            --overloaded-color: #bbdefb; /* Light blue */
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 10px;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.4;
+            font-size: 0.95em;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 { /* This style is technically unused if H1 tag is removed */
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 2em;
+        }
+
+        h2 {
+            font-size: 1.4em;
+            color: var(--text-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 1.1em;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        h4 {
+            font-size: 1em;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #34495e;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+        }
+
+
+        .main-container {
+            max-width: 1500px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px var(--shadow-color);
+            width: 100%;
+            box-sizing: border-box;
+            transition: transform 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel:hover {
+            transform: translateY(-3px);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 700;
+            color: var(--text-color);
+            font-size: 0.9em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="url"],
+        select {
+            width: calc(100% - 18px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.9em;
+            color: var(--text-color);
+            background-color: #f8f9fa;
+        }
+
+        /* Styles for 3-column AP/Level layout */
+        .ap-level-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .ap-level-group > div {
+            display: flex;
+            flex-direction: column;
+        }
+        .ap-level-group input,
+        .ap-level-group select {
+            width: 100%; 
+            margin-bottom: 0; 
+        }
+        
+        /* Group for two columns (e.g., max participations/aides) */
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .input-group > div {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group input,
+        .input-group select {
+            width: 100%; 
+            margin-bottom: 0; 
+        }
+        
+        input[type="checkbox"] {
+            margin-bottom: 15px;
+            margin-left: 0;
+            width: auto;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 10px;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            min-width: 100px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        }
+
+        button.reset {
+            background-color: var(--danger-color);
+        }
+
+        button.reset:hover {
+            background-color: #c0392b;
+        }
+
+        button.secondary {
+            background-color: var(--accent-color);
+        }
+
+        button.secondary:hover {
+            background-color: #d35400;
+        }
+
+        button.tertiary {
+            background-color: #7f8c8d;
+        }
+        button.tertiary:hover {
+            background-color: #6c7a89;
+        }
+
+
+        /* Table container for scrollbars */
+        .table-container {
+            flex-grow: 1;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 250px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .equipes-table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+        .equipes-table-container table {
+            min-width: 500px;
+        }
+
+
+        table {
+            width: 100%;
+            min-width: 500px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #eaf1f7;
+            font-weight: 700;
+            color: var(--text-color);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f7f9fb;
+        }
+
+        tbody tr:hover {
+            background-color: #eef5fc;
+        }
+
+        /* Actions column in tables */
+        td.actions-cell button {
+            padding: 6px 10px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            border-radius: 15px;
+            min-width: 70px;
+        }
+        td.actions-cell button.reset {
+            background-color: var(--danger-color);
+        }
+        td.actions-cell a.button { 
+            display: inline-block;
+            padding: 6px 10px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            background-color: #6c5ce7; 
+            color: white;
+            border: none;
+            border-radius: 15px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            min-width: 70px;
+        }
+        td.actions-cell a.button:hover {
+            background-color: #5d4be4;
+            transform: translateY(-1px);
+        }
+
+        /* Calendar Styles */
+        #calendarPersonSelector {
+            width: calc(100% - 18px);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: #f8f9fa;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid-container {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 5px;
+            background-color: #fdfefe;
+            flex-grow: 1;
+            margin-bottom: 15px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: auto repeat(12, 40px);
+            gap: 1px;
+            min-width: 700px;
+        }
+        /* Adjust day label width and calendar grid columns */
+        @media (min-width: 769px) {
+            .calendar-grid {
+                grid-template-columns: 80px repeat(12, 1fr);
+                min-width: 800px;
+            }
+        }
+
+        .calendar-grid > div {
+            padding: 3px 1px;
+            text-align: center;
+            font-size: 0.7em;
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            white-space: nowrap;
+            /* NEW: Increased font size for numbers in cells */
+            font-size: 0.9em; 
+            font-weight: bold;
+            color: var(--text-color); /* Default text color for numbers */
+        }
+        /* Styles for drag selection highlighting */
+        .availability-cell.drag-highlight {
+            background-color: #a7d9ed; /* Highlight color */
+            border: 1px solid #3498db;
+        }
+        .calendar-grid.read-only .availability-cell {
+            cursor: default;
+        }
+        .calendar-grid.read-only .availability-cell:hover {
+            background-color: #f0f4f7;
+        }
+
+
+        .hour-label-header {
+            background-color: #eaf1f7;
+            font-weight: bold;
+            color: var(--text-color);
+            padding: 3px 0;
+        }
+
+        .day-label-row {
+            background-color: #d9edf7;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: left; 
+            padding-left: 5px;
+            padding-right: 5px; 
+            grid-column: 1;
+            white-space: normal; 
+        }
+        /* Ensure day labels don't get too small */
+        .day-label-row:nth-child(7n+1) {
+            min-width: 70px; 
+        }
+
+        .availability-cell {
+            background-color: var(--bg-color); /* Default background, will be overridden by density/oui/non */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            position: relative;
+            width: auto; 
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color); /* Text color for numbers */
+            font-size: 0.9em; /* Match font size for numbers */
+            font-weight: bold; /* Match font weight for numbers */
+        }
+
+        .availability-cell:hover {
+            background-color: #c9e2f4;
+        }
+
+        .availability-cell.oui {
+            background-color: var(--secondary-color);
+            color: white; /* White text for "oui" */
+        }
+
+        .availability-cell.non {
+            background-color: var(--danger-color);
+            color: white; /* White text for "non" */
+        }
+
+        /* Messages */
+        .toast-container {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background-color: #333;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 0.85em;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast.success { background-color: var(--secondary-color); }
+        .toast.error { background-color: var(--danger-color); }
+        .toast.info { background-color: var(--primary-color); }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                gap: 10px;
+            }
+            .panel {
+                padding: 15px;
+            }
+            .calendar-grid {
+                min-width: unset;
+                grid-template-columns: auto repeat(12, 1fr);
+            }
+        }
+        #saveAvailabilitiesBtn {
+            margin-top: auto; 
+        }
+        /* No owner checks, so no disabled states for these buttons/selectors */
+        #saveAvailabilitiesBtn[disabled],
+        .actions-cell button[disabled],
+        #calendarPersonSelector[disabled],
+        .calendar-grid.read-only .availability-cell,
+        .calendar-grid.read-only .availability-cell:hover {
+            opacity: 1;
+            cursor: pointer;
+            background-color: var(--secondary-color); /* Just to make sure they're visible if they happened to inherit a disabled style */
+        }
+        /* Override specific disabled style if button is still active */
+        .actions-cell button[disabled] {
+            cursor: pointer;
+            background-color: var(--primary-color); /* Or appropriate color */
+            opacity: 1;
+        }
+
+        .player-with-type {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.2;
+        }
+        .player-name {
+            font-weight: bold;
+        }
+        .player-type {
+            font-size: 0.7em;
+            color: #555;
+        }
+        /* Style for bold names in select */
+        option.bold-name {
+            font-weight: bold;
+        }
+        /* Style for optimal slots container */
+        .optimal-slots-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.85em;
+        }
+        .optimal-slot-item {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .optimal-slot-item span {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        /* Styles for type-participation and type-aide colors */
+        .player-type.type-participation {
+            color: var(--secondary-color); /* Greenish */
+        }
+        .player-type.type-aide {
+            color: var(--accent-color); /* Orangish */
+        }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="main-content-wrapper" id="mainContentWrapper">
+        <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
+
+        <div class="main-container">
+            <div class="panel">
+                <h2>Participants</h2>
+                <form id="personForm">
+                    <label for="personName">Nom :</label>
+                    <input type="text" id="personName" placeholder="Nom du participant" required>
+
+                    <div class="ap-level-group">
+                        <div>
+                            <label for="baseAP">AP de base :</label>
+                            <input type="number" id="baseAP" min="0" value="0" required>
+                        </div>
+                        <div>
+                            <label for="awakeningAP">AP d'éveil :</label>
+                            <input type="number" id="awakeningAP" min="0" value="0" required>
+                        </div>
+                        <div>
+                            <label for="personLevel">Niveau (calculé) :</label>
+                            <select id="personLevel" disabled> 
+                                <option value="Élite">Élite</option>
+                                <option value="Normal">Normal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group"> 
+                        <div>
+                            <label for="maxParticipations">Part. Max (hebdo) :</label>
+                            <input type="number" id="maxParticipations" min="1" value="1" required>
+                        </div>
+                        <div>
+                            <label for="maxAide">Aides Max (hebdo) :</label>
+                            <input type="number" id="maxAide" min="0" value="0" required>
+                        </div>
+                    </div> 
+
+                    <label for="garmothLink">Lien Garmoth.com (optionnel) :</label>
+                    <input type="url" id="garmothLink" placeholder="https://garmoth.com/character/...">
+
+                    <button type="submit" id="addUpdatePersonBtn">Ajouter / Mettre à jour</button>
+                    <button type="button" id="clearPersonFormBtn" class="secondary">Effacer</button>
+                </form>
+
+                <h3>Liste des Participants</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Niveau</th>
+                                <th>AP</th>
+                                <th>AP Éveil</th>
+                                <th>Part. Max</th>
+                                <th>Aide Max</th>
+                                <th>Part. Actuelle</th>
+                                <th>Aide Actuelle</th>
+                                <th>Garmoth</th> 
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personnesTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Disponibilités Hebdomadaires</h2>
+                <label for="calendarPersonSelector">Sélectionner un participant :</label>
+                <select id="calendarPersonSelector">
+                    </select>
+                <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
+
+                <div class="calendar-grid-container">
+                    <div class="calendar-grid" id="calendarGrid">
+                        </div>
+                </div>
+                <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
+                <button type="button" id="resetCalendarBtn" class="tertiary" style="margin-top: 10px;">Réinitialiser Calendrier</button>
+            </div>
+
+            <div class="panel">
+                <h2>Génération d'Équipes Hebdomadaires</h2>
+                <p style="font-size:0.8em; margin-bottom: 10px;">Génère le nombre maximal d'équipes de 5 pour la semaine, en fonction des disponibilités et des priorités.</p>
+
+                <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
+                <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
+
+                <h3>Équipes générées pour la semaine</h3>
+                <div id="equipesResultsContainer">
+                    <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
+                </div>
+
+                <h3>Créneaux Optimaux</h3>
+                <div id="optimalSlotsContainer" class="optimal-slots-container">
+                    <p style="text-align: center; color: #7f8c8d;">Générez les équipes pour voir les créneaux les plus prometteurs.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DONNÉES ET ÉTATS ---
+        let personnes = []; 
+        let equipes = []; 
+        const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."]; 
+        const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`); 
+        
+        // --- SÉLECTEURS DU DOM ---
+        const personneForm = document.getElementById('personForm');
+        const personNameInput = document.getElementById('personName');
+        const baseAPInput = document.getElementById('baseAP'); 
+        const awakeningAPInput = document.getElementById('awakeningAP'); 
+        const personLevelSelect = document.getElementById('personLevel'); 
+        const maxParticipationsInput = document.getElementById('maxParticipations');
+        const maxAideInput = document.getElementById('maxAide');
+        const garmothLinkInput = document.getElementById('garmothLink'); 
+        const personnesTableBody = document.getElementById('personnesTableBody');
+        
+        const calendarPersonSelector = document.getElementById('calendarPersonSelector'); 
+        const calendarGrid = document.getElementById('calendarGrid'); 
+        const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
+        const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
+
+        // Removed numTeamsToGenerateInput
+        const generateTeamsBtn = document.getElementById('generateTeamsBtn');
+        const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
+        const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
+        const toastContainer = document.getElementById('toastContainer');
+        const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
+        const resetParticipationBtn = document.getElementById('resetParticipationBtn');
+        const optimalSlotsContainer = document.getElementById('optimalSlotsContainer');
+
+        // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
+        const ELITE_AP_THRESHOLD = 350; 
+
+        // --- CALCUL DU NIVEAU BASÉ SUR LES AP ---
+        function calculateLevel(baseAP, awakeningAP) {
+            const result = (baseAP + awakeningAP) / 2;
+            return result >= ELITE_AP_THRESHOLD ? "Élite" : "Normal";
+        }
+
+        // --- URL DE VOTRE BACKEND RENDER.COM ---
+        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com'; 
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+
+            void toast.offsetWidth; 
+
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, duration);
+        }
+
+        // --- FONCTIONS UTILITAIRES DE SAUVEGARDE/CHARGEMENT VIA BACKEND ---
+        async function saveData() {
+            try {
+                const dataToSend = { 
+                    username: 'global_user', 
+                    personnes: personnes,
+                    equipes: equipes
+                };
+                console.log('Données envoyées au backend:', JSON.stringify(dataToSend, null, 2));
+
+                const response = await fetch(`${BACKEND_API_URL}/api/saveData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Échec de la sauvegarde des données');
+                }
+            } catch (error) {
+                console.error('Erreur lors de la sauvegarde des données sur le backend:', error);
+                showToast(`Erreur lors de la sauvegarde des données: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch(`${BACKEND_API_URL}/api/loadData/global_user`);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Échec du chargement des données');
+                }
+
+                const data = await response.json();
+                personnes = data.personnes || [];
+                equipes = data.equipes || [];
+
+                personnes.forEach(p => {
+                    if (typeof p.baseAP === 'undefined') p.baseAP = 0;
+                    if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
+                    p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
+                    if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
+                    
+                    if (p.disponibilites && JOURS_SEMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
+                        p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
+                    } else {
+                        p.disponibilites = generateEmptyAvailabilities();
+                    }
+
+                    if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
+                    if (typeof p.currentAide === 'undefined') p.currentAide = 0;
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement des données depuis le backend:', error);
+                showToast(`Erreur lors du chargement des données: ${error.message}. Les données sont vides.`, 'error');
+                personnes = [];
+                equipes = [];
+            }
+        }
+
+        // --- Render All UI Components ---
+        function renderAllUI() {
+            renderPersonnesTable();
+            renderEquipesTable();
+            renderCalendar();
+            clearPersonForm();
+            displayOptimalSlots(); 
+        }
+
+
+        // --- GESTION DES PERSONNES ---
+        function renderPersonnesTable() {
+            personnesTableBody.innerHTML = '';
+            if (personnes.length === 0) {
+                const row = personnesTableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 10;
+                cell.textContent = "Aucun participant enregistré.";
+                cell.style.textAlign = 'center';
+                return;
+            }
+
+            personnes.forEach((person, index) => {
+                const row = personnesTableBody.insertRow();
+                row.dataset.personIndex = index;
+
+                row.insertCell().textContent = person.nom;
+                row.insertCell().textContent = person.niveau;
+                row.insertCell().textContent = person.baseAP;
+                row.insertCell().textContent = person.awakeningAP;
+                row.insertCell().textContent = person.maxParticipations;
+                row.insertCell().textContent = person.maxAide;
+                row.insertCell().textContent = person.currentParticipations;
+                row.insertCell().textContent = person.currentAide;
+
+                const garmothCell = row.insertCell();
+                if (person.garmothLink) {
+                    const garmothLinkBtn = document.createElement('a');
+                    garmothLinkBtn.href = person.garmothLink;
+                    garmothLinkBtn.target = '_blank';
+                    garmothLinkBtn.textContent = 'Voir Stats';
+                    garmothLinkBtn.className = 'button';
+                    garmothCell.appendChild(garmothLinkBtn);
+                } else {
+                    garmothCell.textContent = '-';
+                }
+
+                const actionsCell = row.insertCell();
+                actionsCell.className = 'actions-cell';
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Modif.';
+                editBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    editPerson(index);
+                };
+                actionsCell.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Suppr.';
+                deleteBtn.className = 'reset';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deletePerson(index);
+                };
+                actionsCell.appendChild(deleteBtn);
+            });
+            updateCalendarPersonSelector();
+        }
+
+        let editingPersonIndex = -1;
+
+        function updateCalculatedLevelDisplay() {
+            const baseAP = parseInt(baseAPInput.value) || 0;
+            const awakeningAP = parseInt(awakeningAPInput.value) || 0;
+            personLevelSelect.value = calculateLevel(baseAP, awakeningAP);
+        }
+
+        baseAPInput.addEventListener('input', updateCalculatedLevelDisplay);
+        awakeningAPInput.addEventListener('input', updateCalculatedLevelDisplay);
+
+        async function addUpdatePerson(event) {
+            event.preventDefault();
+            const nom = personNameInput.value.trim();
+            const baseAP = parseInt(baseAPInput.value) || 0;
+            const awakeningAP = parseInt(awakeningAPInput.value) || 0;
+            const niveau = calculateLevel(baseAP, awakeningAP);
+            const maxPart = parseInt(maxParticipationsInput.value);
+            const maxAide = parseInt(maxAideInput.value);
+            const garmothLink = garmothLinkInput.value.trim();
+
+            if (!nom) {
+                showToast("Le nom du participant ne peut pas être vide.", 'error');
+                return;
+            }
+            if (isNaN(baseAP) || baseAP < 0 || isNaN(awakeningAP) || awakeningAP < 0) {
+                showToast("Les valeurs d'AP doivent être des nombres positifs.", 'error');
+                return;
+            }
+            if (isNaN(maxPart) || maxPart < 1 || isNaN(maxAide) || maxAide < 0) {
+                   showToast("Les participations max. doivent être au moins 1. Les aides max. doivent être un nombre positif.", 'error');
+                   return;
+            }
+            if (garmothLink && !garmothLink.startsWith('http://') && !garmothLink.startsWith('https://')) {
+                showToast("Le lien Garmoth doit commencer par http:// ou https://", 'error');
+                return;
+            }
+
+            if (editingPersonIndex !== -1) {
+                const person = personnes[editingPersonIndex];
+                if (person.nom !== nom && personnes.some((p, idx) => p.nom === nom && idx !== editingPersonIndex)) {
+                       showToast("Ce nom de participant existe déjà. Veuillez en choisir un autre.", 'error');
+                       return;
+                }
+                person.nom = nom;
+                person.baseAP = baseAP;
+                person.awakeningAP = awakeningAP;
+                person.niveau = niveau;
+                person.maxParticipations = maxPart;
+                person.maxAide = maxAide;
+                person.garmothLink = garmothLink;
+                showToast(`Participant "${nom}" mis à jour avec succès !`, 'success');
+                editingPersonIndex = -1;
+                addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
+            } else {
+                if (personnes.some(p => p.nom === nom)) {
+                    showToast("Ce nom de participant existe déjà. Veuillez le modifier ou mettre à jour l'existant.", 'error');
+                    return;
+                }
+                personnes.push({
+                    nom: nom,
+                    baseAP: baseAP,
+                    awakeningAP: awakeningAP,
+                    niveau: niveau,
+                    maxParticipations: maxPart,
+                    maxAide: maxAide,
+                    currentParticipations: 0,
+                    currentAide: 0,
+                    disponibilites: generateEmptyAvailabilities(),
+                    garmothLink: garmothLink
+                });
+                showToast(`Participant "${nom}" ajouté avec succès !`, 'success');
+            }
+
+            await saveData();
+            renderPersonnesTable();
+            clearPersonForm();
+        }
+
+        function editPerson(index) {
+            const person = personnes[index];
+
+            personNameInput.value = person.nom;
+            baseAPInput.value = person.baseAP;
+            awakeningAPInput.value = person.awakeningAP;
+            personLevelSelect.value = person.niveau;
+            maxParticipationsInput.value = person.maxParticipations;
+            maxAideInput.value = person.maxAide;
+            garmothLinkInput.value = person.garmothLink;
+            editingPersonIndex = index;
+            addUpdatePersonBtn.textContent = 'Mettre à jour';
+            personNameInput.focus();
+            showToast(`Modification de "${person.nom}".`, 'info', 2000);
+        }
+
+        async function deletePerson(index) {
+            const personName = personnes[index].nom;
+            if (confirm(`Êtes-vous sûr de vouloir supprimer le participant "${personName}" ? Cette action est irréversible.`)) {
+                personnes.splice(index, 1);
+                await saveData();
+                renderPersonnesTable();
+                showToast(`Participant "${personName}" supprimé.`, 'success');
+
+                await loadData();
+                renderAllUI();
+            }
+        }
+
+        function clearPersonForm() {
+            personneForm.reset();
+            personNameInput.value = '';
+            baseAPInput.value = 0;
+            awakeningAPInput.value = 0;
+            personLevelSelect.value = 'Normal';
+            maxParticipationsInput.value = 1;
+            maxAideInput.value = 0;
+            garmothLinkInput.value = '';
+            editingPersonIndex = -1;
+            addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
+        }
+
+        // --- GESTION DES DISPONIBILITÉS (CALENDRIER) ---
+        function generateEmptyAvailabilities() {
+            const availabilities = {};
+            JOURS_SEMAINE.forEach(day => {
+                availabilities[day] = {};
+                HEURES_JOUR.forEach(hour => {
+                    availabilities[day][hour] = false;
+                });
+            });
+            return availabilities;
+        }
+
+        function updateCalendarPersonSelector() {
+            const lastSelectedValue = calendarPersonSelector.value;
+            calendarPersonSelector.innerHTML = '';
+
+            if (personnes.length === 0) {
+                calendarPersonSelector.innerHTML = '<option value="">-- Aucun participant --</option>';
+                calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Ajoutez un participant pour gérer ses disponibilités.</div>';
+                return;
+            }
+
+            let foundLastSelection = false;
+            personnes.forEach((person, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = person.nom;
+                option.classList.add('bold-name'); 
+                calendarPersonSelector.appendChild(option);
+                if (index.toString() === lastSelectedValue) {
+                    foundLastSelection = true;
+                }
+            });
+
+            if (foundLastSelection) {
+                calendarPersonSelector.value = lastSelectedValue;
+            } else {
+                calendarPersonSelector.value = personnes.length > 0 ? 0 : '';
+            }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            calendarGrid.innerHTML = '';
+
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Veuillez sélectionner un participant pour afficher son calendrier.</div>';
+                return;
+            }
+            const currentPerson = personnes[selectedIndex];
+
+            const emptyCorner = document.createElement('div');
+            calendarGrid.appendChild(emptyCorner);
+            HEURES_JOUR.forEach(hour => {
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'hour-label-header';
+                hourLabel.textContent = hour;
+                calendarGrid.appendChild(hourLabel);
+            });
+            
+            // Calculate density for each slot (re-added for number display)
+            const slotDensity = {};
+            JOURS_SEMAINE.forEach(day => {
+                slotDensity[day] = {};
+                HEURES_JOUR.forEach(hour => {
+                    slotDensity[day][hour] = personnes.filter(p => p.disponibilites[day] && p.disponibilites[day][hour]).length;
+                });
+            });
+
+            // Thresholds for density visualization (used for tooltip, not color)
+            const UNDERLOADED_THRESHOLD = 5; 
+            const OVERLOADED_THRESHOLD = 15; 
+
+            JOURS_SEMAINE.forEach(day => {
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-label-row';
+                dayLabel.textContent = day;
+                calendarGrid.appendChild(dayLabel);
+
+                HEURES_JOUR.forEach(hour => {
+                    const cell = document.createElement('div');
+                    cell.className = 'availability-cell';
+                    const isAvailable = currentPerson.disponibilites[day] && currentPerson.disponibilites[day][hour];
+                    
+                    // Display the count inside the cell
+                    const densityCount = slotDensity[day][hour];
+                    cell.textContent = densityCount; // Show number of available people
+
+                    if (isAvailable) {
+                        cell.classList.add('oui');
+                    } else {
+                        cell.classList.add('non');
+                    }
+                    cell.dataset.day = day;
+                    cell.dataset.hour = hour;
+                    cell.onclick = toggleAvailability;
+
+                    // Add density info to tooltip (title)
+                    cell.title = `Disponibles: ${densityCount} (${isAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
+
+                    calendarGrid.appendChild(cell);
+                });
+            });
+        }
+
+        // Drag-select functionality
+        let isDragging = false;
+        let startCell = null;
+        let toggleValue = null; // true if dragging to set 'oui', false if dragging to set 'non'
+        let currentHighlightedCells = new Set();
+
+        calendarGrid.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('availability-cell')) {
+                isDragging = true;
+                startCell = e.target;
+                toggleValue = !e.target.classList.contains('oui'); // Invert current state of starting cell
+                
+                // Clear any previous highlights and add initial
+                clearDragHighlights();
+                startCell.classList.add('drag-highlight');
+                currentHighlightedCells.add(startCell);
+
+                e.preventDefault(); // Prevent text selection
+            }
+        });
+
+        calendarGrid.addEventListener('mouseover', (e) => {
+            if (isDragging && e.target.classList.contains('availability-cell')) {
+                const hoveredCell = e.target;
+                clearDragHighlights(); // Clear previous highlights
+
+                const cellsToHighlight = getCellsInRect(startCell, hoveredCell);
+                cellsToHighlight.forEach(cell => {
+                    cell.classList.add('drag-highlight');
+                    currentHighlightedCells.add(cell);
+                });
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                // Apply the toggle value to all highlighted cells
+                currentHighlightedCells.forEach(cell => {
+                    cell.classList.remove('drag-highlight');
+                    if (toggleValue) {
+                        cell.classList.add('oui');
+                        cell.classList.remove('non');
+                    } else {
+                        cell.classList.add('non');
+                        cell.classList.remove('oui');
+                    }
+                    // Text content (count) is updated only on renderCalendar
+                });
+                clearDragHighlights(); // Ensure all highlights are removed
+                startCell = null; // Reset start cell
+                // Don't call saveAvailabilities here, let user click the save button
+            }
+        });
+
+        function clearDragHighlights() {
+            currentHighlightedCells.forEach(cell => {
+                cell.classList.remove('drag-highlight');
+            });
+            currentHighlightedCells.clear();
+        }
+
+        // Helper to get cells within a rectangular selection
+        function getCellsInRect(start, end) {
+            const cells = [];
+            
+            const startDayIndex = JOURS_SEMAINE.indexOf(start.dataset.day);
+            const startHourIndex = HEURES_JOUR.indexOf(start.dataset.hour);
+            const endDayIndex = JOURS_SEMAINE.indexOf(end.dataset.day);
+            const endHourIndex = HEURES_JOUR.indexOf(end.dataset.hour);
+
+            const minDay = Math.min(startDayIndex, endDayIndex);
+            const maxDay = Math.max(startDayIndex, endDayIndex);
+            const minHour = Math.min(startHourIndex, endHourIndex);
+            const maxHour = Math.max(startHourIndex, endHourIndex);
+
+            for (let d = minDay; d <= maxDay; d++) {
+                for (let h = minHour; h <= maxHour; h++) {
+                    const cell = calendarGrid.querySelector(`[data-day="${JOURS_SEMAINE[d]}"][data-hour="${HEURES_JOUR[h]}"]`);
+                    if (cell) {
+                        cells.push(cell);
+                    }
+                }
+            }
+            return cells;
+        }
+
+        function toggleAvailability(event) {
+            // Only allow single click toggle if not dragging
+            if (!isDragging) {
+                const cell = event.target;
+                cell.classList.toggle('oui');
+                cell.classList.toggle('non');
+                // Text content (count) is updated only on renderCalendar
+            }
+        }
+
+        async function saveAvailabilities() {
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                showToast("Veuillez sélectionner un participant pour sauvegarder les disponibilités.", 'error');
+                return;
+            }
+            const currentPerson = personnes[selectedIndex];
+
+            currentPerson.disponibilites = generateEmptyAvailabilities();
+
+            const cells = calendarGrid.querySelectorAll('.availability-cell');
+            cells.forEach(cell => {
+                const day = cell.dataset.day;
+                const hour = cell.dataset.hour;
+                currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
+            });
+            await saveData();
+            showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
+            // After saving, re-render the calendar to update all counts (as another person's availability affects global counts)
+            renderCalendar(); 
+        }
+
+        async function resetCalendarForSelectedPerson() {
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                showToast("Veuillez sélectionner un participant pour réinitialiser son calendrier.", 'error');
+                return;
+            }
+            const person = personnes[selectedIndex];
+            if (confirm(`Êtes-vous sûr de vouloir réinitialiser toutes les disponibilités de "${person.nom}" ?`)) {
+                person.disponibilites = generateEmptyAvailabilities();
+                await saveData(); 
+                renderCalendar(); 
+                showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+            }
+        }
+
+        // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
+        async function generateTeams() {
+            // No longer reading numTeams from input, generating maximum possible
+            equipes = [];
+            resetParticipationCounters(false);
+
+            let equipeID = 1;
+
+            const TEAM_COMBINATIONS_PRIORITY = [
+                { elite: 5, normal: 0, label: "5 Élite" },
+                { elite: 4, normal: 1, label: "4 Élite + 1 Normal" },
+                { elite: 3, normal: 2, label: "3 Élite + 2 Normal" },
+                { elite: 2, normal: 3, label: "2 Élite + 3 Normal" },
+                { elite: 1, normal: 4, label: "1 Élite + 4 Normal" },
+                { elite: 0, normal: 5, label: "5 Normal" }
+            ];
+
+            const usedTimeSlots = new Set();
+            let teamFormedInCurrentIteration; // Flag to indicate if any team was formed in the current outer loop pass
+
+            // Loop to generate maximum possible teams
+            do {
+                teamFormedInCurrentIteration = false; // Reset flag for each outer iteration
+                let bestSlot = null;
+                
+                const availableSlots = [];
+                for (const day of JOURS_SEMAINE) {
+                    for (const hour of HEURES_JOUR) {
+                        const slotKey = `${day}_${hour}`;
+                        if (usedTimeSlots.has(slotKey)) continue; 
+
+                        let eligiblePlayersInSlot = personnes.filter(p =>
+                            p.disponibilites[day] && p.disponibilites[day][hour] &&
+                            (p.currentParticipations < p.maxParticipations || p.currentAide < p.maxAide)
+                        );
+
+                        if (eligiblePlayersInSlot.length >= 5) {
+                            let possibleComboInSlot = false;
+                            for (const combo of TEAM_COMBINATIONS_PRIORITY) {
+                                const eliteCount = eligiblePlayersInSlot.filter(p => p.niveau === "Élite").length;
+                                const normalCount = eligiblePlayersInSlot.filter(p => p.niveau === "Normal").length;
+                                if (eliteCount >= combo.elite && normalCount >= combo.normal) {
+                                    possibleComboInSlot = true;
+                                    break;
+                                }
+                            }
+                            if (possibleComboInSlot) {
+                                availableSlots.push({ day, hour, eligiblePlayersCount: eligiblePlayersInSlot.length });
+                            }
+                        }
+                    }
+                }
+
+                if (availableSlots.length === 0) {
+                    break; // No more teams can be formed
+                }
+
+                availableSlots.sort((a, b) => b.eligiblePlayersCount - a.eligiblePlayersCount);
+                bestSlot = availableSlots[0];
+                usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
+
+                let teamFormedInThisSlotAttempt = false; // Flag for this specific slot attempt
+                const playersAvailableInBestSlot = personnes
+                    .map((p, index) => ({ person: p, index: index }))
+                    .filter(item =>
+                        item.person.disponibilites[bestSlot.day] && item.person.disponibilites[bestSlot.day][bestSlot.hour] &&
+                        (item.person.currentParticipations < item.person.maxParticipations || item.person.currentAide < item.person.maxAide)
+                    )
+                    .map(item => item.index);
+
+                const eliteInSlot = playersAvailableInBestSlot.filter(idx => personnes[idx].niveau === "Élite");
+                const normalInSlot = playersAvailableInBestSlot.filter(idx => personnes[idx].niveau === "Normal");
+
+                for (const combo of TEAM_COMBINATIONS_PRIORITY) {
+                    if (eliteInSlot.length >= combo.elite && normalInSlot.length >= combo.normal) {
+                        const teamResult = tryPickPersons(eliteInSlot, normalInSlot, combo.elite, combo.normal);
+                        if (teamResult.success) {
+                            const membersWithTypes = teamResult.pickedPersons.map(idx => {
+                                const person = personnes[idx];
+                                let type = '';
+                                if (person.currentParticipations < person.maxParticipations) {
+                                    type = 'Participation';
+                                } else if (person.currentAide < person.maxAide) {
+                                    type = 'Aide';
+                                }
+                                return { name: person.nom, type: type };
+                            });
+
+                            equipes.push({
+                                id: equipeID,
+                                day: bestSlot.day,
+                                hour: bestSlot.hour,
+                                members: membersWithTypes,
+                                composition: combo.label
+                            });
+                            updatePersonsParticipation(teamResult.pickedPersons);
+                            equipeID++;
+                            teamFormedInThisSlotAttempt = true;
+                            teamFormedInCurrentIteration = true; // Set flag to true if a team was formed
+                            break; 
+                        }
+                    }
+                }
+
+                if (!teamFormedInThisSlotAttempt) {
+                    break; // No more teams can be formed in this or subsequent iterations
+                }
+
+            } while (teamFormedInCurrentIteration); // Continue as long as we successfully form a team in an iteration
+
+            const allParticipantsWithAvailability = personnes.filter(p => {
+                for (const day of JOURS_SEMAINE) {
+                    for (const hour of HEURES_JOUR) {
+                        if (p.disponibilites[day] && p.disponibilites[day][hour]) return true;
+                    }
+                }
+                return false;
+            });
+
+            const participantsNotPlayed = allParticipantsWithAvailability.filter(p => p.currentParticipations === 0 && p.currentAide === 0);
+
+            if (participantsNotPlayed.length > 0) {
+                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.length === 1 ? participantsNotPlayed[0].nom : participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
+            }
+
+            await saveData();
+            renderEquipesTable();
+            renderPersonnesTable();
+            showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
+            displayOptimalSlots(); 
+        }
+
+        function tryPickPersons(availableEliteIndices, availableNormalIndices, numEliteNeeded, numNormalNeeded) {
+            let picked = [];
+            let tempEliteDispo = [...availableEliteIndices];
+            let tempNormalDispo = [...availableNormalIndices];
+
+            const pickFromDispo = (dispoArray, currentPickedTeamIndices) => {
+                const alreadyPickedInTeam = new Set(currentPickedTeamIndices);
+
+                const sortedCandidates = dispoArray
+                    .filter(idx => !alreadyPickedInTeam.has(idx))
+                    .sort((a, b) => {
+                        const personA = personnes[a];
+                        const personB = personnes[b];
+
+                        if (personA.currentParticipations === 0 && personB.currentParticipations !== 0) return -1;
+                        if (personA.currentParticipations !== 0 && personB.currentParticipations === 0) return 1;
+
+                        if (personA.currentParticipations !== personB.currentParticipations) {
+                            return personA.currentParticipations - personB.currentParticipations;
+                        }
+
+                        if (personA.currentAide !== personB.currentAide) {
+                            return personA.currentAide - personB.currentAide;
+                        }
+
+                        return Math.random() - 0.5;
+                    });
+
+                for (const index of sortedCandidates) {
+                    const person = personnes[index];
+                    if (person.currentParticipations < person.maxParticipations || person.currentAide < person.maxAide) {
+                        return index;
+                    }
+                }
+                return -1;
+            };
+
+            for (let i = 0; i < numEliteNeeded; i++) {
+                const personIndex = pickFromDispo(tempEliteDispo, picked);
+                if (personIndex !== -1) {
+                    picked.push(personIndex);
+                    tempEliteDispo.splice(tempEliteDispo.indexOf(personIndex), 1);
+                } else {
+                    return { success: false, pickedPersons: [] };
+                }
+            }
+
+            for (let i = 0; i < numNormalNeeded; i++) {
+                const personIndex = pickFromDispo(tempNormalDispo, picked);
+                if (personIndex !== -1) {
+                    picked.push(personIndex);
+                    tempNormalDispo.splice(tempNormalDispo.indexOf(personIndex), 1);
+                } else {
+                    return { success: false, pickedPersons: [] };
+                }
+            }
+
+            return { success: picked.length === (numEliteNeeded + numNormalNeeded), pickedPersons: picked };
+        }
+
+        function updatePersonsParticipation(pickedPersonsIndices) {
+            pickedPersonsIndices.forEach(index => {
+                const person = personnes[index];
+                if (person.currentParticipations < person.maxParticipations) {
+                    person.currentParticipations++;
+                } else if (person.currentAide < person.maxAide) {
+                    person.currentAide++;
+                } else {
+                    console.warn(`Tentative d'assigner "${person.nom}" au-delà de ses limites. Ceci ne devrait pas arriver avec la logique de sélection actuelle.`);
+                }
+            });
+        }
+
+        function renderEquipesTable() {
+            equipesResultsContainer.innerHTML = '';
+
+            if (equipes.length === 0) {
+                equipesResultsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>';
+                return;
+            }
+
+            const sortedEquipes = [...equipes].sort((a, b) => {
+                const dayIndexA = JOURS_SEMAINE.indexOf(a.day);
+                const dayIndexB = JOURS_SEMAINE.indexOf(b.day);
+                if (dayIndexA !== dayIndexB) {
+                    return dayIndexA - dayIndexB;
+                }
+                // Parse "Xh-Yh" to just X for sorting
+                const hourA = parseInt(a.hour.split('h-')[0]);
+                const hourB = parseInt(b.hour.split('h-')[0]);
+                return hourA - hourB;
+            });
+
+
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'equipes-table-container';
+            equipesResultsContainer.appendChild(tableContainer);
+
+            const table = document.createElement('table');
+            tableContainer.appendChild(table);
+
+            const thead = table.createTHead();
+            const headerRow = thead.insertRow();
+            headerRow.innerHTML = `
+                <th>ID</th>
+                <th>Jour</th>
+                <th>Heure</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>P4</th>
+                <th>P5</th>
+                <th>Comp.</th>
+            `;
+
+            const tbody = table.createTBody();
+            sortedEquipes.forEach(team => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = `Équipe ${team.id}`;
+                row.insertCell().textContent = team.day;
+                row.insertCell().textContent = team.hour;
+
+                // Display player name and type (Participation/Aide)
+                team.members.forEach(member => {
+                    const cell = row.insertCell();
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'player-with-type';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'player-name';
+                    nameSpan.textContent = member.name.length > 6 ? member.name.substring(0,6) + '...' : member.name;
+                    if (member.name.length > 6) {
+                        nameSpan.title = member.name; // Full name on hover
+                    }
+                    playerDiv.appendChild(nameSpan);
+
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'player-type';
+                    // Add specific class for Participation/Aide type for styling
+                    if (member.type === 'Participation') {
+                        typeSpan.classList.add('type-participation');
+                    } else if (member.type === 'Aide') {
+                        typeSpan.classList.add('type-aide');
+                    }
+                    typeSpan.textContent = `(${member.type})`;
+                    playerDiv.appendChild(typeSpan);
+
+                    cell.appendChild(playerDiv);
+                });
+
+                row.insertCell().textContent = team.composition;
+            });
+        }
+
+        // --- FONCTIONS DE RÉINITIALISATION ---
+
+        async function resetParticipationCounters(showConfirmation = true) {
+            if (showConfirmation && !confirm("Voulez-vous réinitialiser les compteurs de participation (Part. Actuelle, Aide Actuelle) de tous les participants et effacer les équipes générées ? Les participants et leurs disponibilités seront conservés.")) {
+                return;
+            }
+            personnes.forEach(p => {
+                p.currentParticipations = 0;
+                p.currentAide = 0;
+            });
+            equipes = [];
+            await saveData(); // Save the reset state to the backend
+            renderPersonnesTable();
+            renderEquipesTable();
+            if (showConfirmation) {
+                showToast("Compteurs de participation réinitialisés et équipes effacées !", 'success');
+            }
+        }
+
+        // --- ÉVÉNEMENTS ---
+        personneForm.addEventListener('submit', addUpdatePerson);
+        calendarPersonSelector.addEventListener('change', renderCalendar);
+
+        generateTeamsBtn.addEventListener('click', generateTeams);
+        clearPersonFormBtn.addEventListener('click', clearPersonForm);
+        saveAvailabilitiesBtn.addEventListener('click', saveAvailabilities);
+        resetParticipationBtn.addEventListener('click', () => resetParticipationCounters(true));
+        resetCalendarBtn.addEventListener('click', resetCalendarForSelectedPerson); 
+
+        // --- INITIALISATION AU CHARGEMENT DE LA PAGE ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData(); // Charge les données au démarrage
+            renderAllUI();
+        });
+
+        // Function to reset calendar for selected person
+        async function resetCalendarForSelectedPerson() {
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                showToast("Veuillez sélectionner un participant pour réinitialiser son calendrier.", 'error');
+                return;
+            }
+            const person = personnes[selectedIndex];
+            if (confirm(`Êtes-vous sûr de vouloir réinitialiser toutes les disponibilités de "${person.nom}" ?`)) {
+                person.disponibilites = generateEmptyAvailabilities();
+                await saveData(); 
+                renderCalendar(); 
+                showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+            }
+        }
+
+        // Function to analyze and display optimal slots
+        function displayOptimalSlots() {
+            optimalSlotsContainer.innerHTML = ''; // Clear previous content
+
+            const optimalSlots = [];
+
+            // These thresholds apply to the global count of players available in a slot.
+            const UNDERLOADED_THRESHOLD = 5; // Less than 5 players available
+            const OVERLOADED_THRESHOLD = 15; // More than 15 players available
+
+            for (const day of JOURS_SEMAINE) {
+                for (const hour of HEURES_JOUR) {
+                    let eliteCount = 0;
+                    let normalCount = 0;
+                    const eligiblePlayersInSlot = personnes.filter(p =>
+                        p.disponibilites[day] && p.disponibilites[day][hour] &&
+                        (p.currentParticipations < p.maxParticipations || p.currentAide < p.maxAide)
+                    );
+
+                    if (eligiblePlayersInSlot.length >= 1) { // Check for at least 1 player to show a slot
+                        eligiblePlayersInSlot.forEach(p => {
+                            if (p.niveau === "Élite") eliteCount++;
+                            else normalCount++;
+                        });
+                        optimalSlots.push({ day, hour, eliteCount, normalCount, totalCount: eligiblePlayersInSlot.length });
+                    }
+                }
+            }
+
+            // Sort by total eligible players (descending)
+            optimalSlots.sort((a, b) => b.totalCount - a.totalCount);
+
+            if (optimalSlots.length === 0) {
+                optimalSlotsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Aucun créneau avec des joueurs disponibles trouvé.</p>';
+            } else {
+                optimalSlotsContainer.innerHTML = '<h4>Top Créneaux (dispos & éligibles) :</h4>';
+                // Display top 5 or all if less than 5
+                optimalSlots.slice(0, 5).forEach(slot => {
+                    const slotItem = document.createElement('div');
+                    slotItem.className = 'optimal-slot-item';
+                    let statusColor = '';
+                    if (slot.totalCount < UNDERLOADED_THRESHOLD) {
+                        statusColor = `color: var(--underloaded-color); font-weight: bold;`;
+                    } else if (slot.totalCount > OVERLOADED_THRESHOLD) {
+                        statusColor = `color: var(--overloaded-color); font-weight: bold;`;
+                    } else { /* Between UNDERLOADED and OVERLOADED (inclusive of min optimal) */
+                        statusColor = `color: var(--optimal-color); font-weight: bold;`;
+                    }
+
+                    slotItem.innerHTML = `<span>${slot.day} ${slot.hour}</span> : <span style="${statusColor}">${slot.totalCount} joueurs</span> (Élite: ${slot.eliteCount}, Normal: ${slot.normalCount})`;
+                    optimalSlotsContainer.appendChild(slotItem);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
