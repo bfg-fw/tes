@@ -1,6 +1,3 @@
-V15 Fonctionnal but bug clic (TC) 20250727_20:08
-
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1024,8 +1021,8 @@ V15 Fonctionnal but bug clic (TC) 20250727_20:08
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
-                    cell.onclick = toggleAvailability;
-
+                    // cell.onclick = toggleAvailability; // Supprimé pour gérer le clic dans mouseup
+                    
                     // Add density info to tooltip (title)
                     cell.title = `Disponibles: ${densityCount} (${isAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
 
@@ -1039,10 +1036,12 @@ V15 Fonctionnal but bug clic (TC) 20250727_20:08
         let startCell = null;
         let toggleValue = null; // true if dragging to set 'oui', false if dragging to set 'non'
         let currentHighlightedCells = new Set();
+        let hasDragged = false; // Nouveau drapeau pour détecter si un glisser a eu lieu
 
         calendarGrid.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('availability-cell')) {
                 isDragging = true;
+                hasDragged = false; // Réinitialiser le drapeau de glisser
                 startCell = e.target;
                 toggleValue = !e.target.classList.contains('oui'); // Invert current state of starting cell
                 
@@ -1055,8 +1054,10 @@ V15 Fonctionnal but bug clic (TC) 20250727_20:08
             }
         });
 
-        calendarGrid.addEventListener('mouseover', (e) => {
+        calendarGrid.addEventListener('mousemove', (e) => { // Événement mousemove ajouté/modifié
             if (isDragging && e.target.classList.contains('availability-cell')) {
+                // Si la souris bouge et que nous sommes en mode glisser, c'est un glisser
+                hasDragged = true; 
                 const hoveredCell = e.target;
                 clearDragHighlights(); // Clear previous highlights
 
@@ -1068,24 +1069,27 @@ V15 Fonctionnal but bug clic (TC) 20250727_20:08
             }
         });
 
-        document.addEventListener('mouseup', () => {
+        document.addEventListener('mouseup', (e) => { // Événement mouseup modifié
             if (isDragging) {
                 isDragging = false;
-                // Apply the toggle value to all highlighted cells
-                currentHighlightedCells.forEach(cell => {
-                    cell.classList.remove('drag-highlight');
-                    if (toggleValue) {
-                        cell.classList.add('oui');
-                        cell.classList.remove('non');
-                    } else {
-                        cell.classList.add('non');
-                        cell.classList.remove('oui');
-                    }
-                    // Text content (count) is updated only on renderCalendar
-                });
-                clearDragHighlights(); // Ensure all highlights are removed
-                startCell = null; // Reset start cell
-                // Don't call saveAvailabilities here, let user click the save button
+
+                if (!hasDragged && e.target === startCell) { // C'était un clic simple sur la cellule de départ
+                    toggleAvailability(e.target);
+                } else { // C'était un glisser-déposer ou un clic sur une autre cellule après le mousedown initial
+                    // Appliquer la valeur de bascule à toutes les cellules mises en surbrillance
+                    currentHighlightedCells.forEach(cell => {
+                        if (toggleValue) {
+                            cell.classList.add('oui');
+                            cell.classList.remove('non');
+                        } else {
+                            cell.classList.add('non');
+                            cell.classList.remove('oui');
+                        }
+                    });
+                }
+                clearDragHighlights(); // Assurez-vous que toutes les mises en surbrillance sont supprimées
+                startCell = null; // Réinitialiser la cellule de départ
+                // Ne pas appeler saveAvailabilities ici, laissez l'utilisateur cliquer sur le bouton de sauvegarde
             }
         });
 
@@ -1121,14 +1125,10 @@ V15 Fonctionnal but bug clic (TC) 20250727_20:08
             return cells;
         }
 
-        function toggleAvailability(event) {
-            // Only allow single click toggle if not dragging
-            if (!isDragging) {
-                const cell = event.target;
-                cell.classList.toggle('oui');
-                cell.classList.toggle('non');
-                // Text content (count) is updated only on renderCalendar
-            }
+        function toggleAvailability(cell) { // Modifié pour prendre la cellule directement
+            cell.classList.toggle('oui');
+            cell.classList.toggle('non');
+            // Le contenu textuel (compte) est mis à jour uniquement lors de renderCalendar
         }
 
         async function saveAvailabilities() {
