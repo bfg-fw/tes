@@ -468,7 +468,7 @@
             font-weight: bold;
         }
         /* END NEW */
-        /* NEW: Style for optimal slots container */
+        /* Style for optimal slots container */
         .optimal-slots-container {
             margin-top: 20px;
             padding: 15px;
@@ -486,7 +486,6 @@
             font-weight: 700;
             color: var(--primary-color);
         }
-        /* END NEW */
     </style>
 </head>
 <body>
@@ -563,7 +562,8 @@
 
             <div class="panel">
                 <h2>Disponibilités Hebdomadaires</h2>
-                <label for="calendarPersonSelector">Sélectionner un participant :</label> <select id="calendarPersonSelector">
+                <label for="calendarPersonSelector">Sélectionner un participant :</label>
+                <select id="calendarPersonSelector">
                     </select>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
 
@@ -579,6 +579,8 @@
                 <h2>Génération d'Équipes Hebdomadaires</h2>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Génère le nombre maximal d'équipes de 5 pour la semaine, en fonction des disponibilités et des priorités.</p>
 
+                <label for="numTeamsToGenerate">Nombre d'équipes à générer pour la semaine :</label>
+                <input type="number" id="numTeamsToGenerate" min="1" value="1" required>
                 <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
                 <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
 
@@ -618,13 +620,16 @@
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
+        // Re-added numTeamsToGenerateInput
+        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
+        // Removed teamCompositionFilter (as requested earlier)
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
-        const optimalSlotsContainer = document.getElementById('optimalSlotsContainer'); // New container for optimal slots
+        const optimalSlotsContainer = document.getElementById('optimalSlotsContainer');
 
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
@@ -1048,6 +1053,13 @@
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
+            // Read target number of teams from input
+            const numTeams = parseInt(numTeamsToGenerateInput.value); 
+            if (isNaN(numTeams) || numTeams < 1) {
+                showToast("Veuillez entrer un nombre valide d'équipes à générer (au moins 1).", 'error');
+                return;
+            }
+
             equipes = [];
             resetParticipationCounters(false);
 
@@ -1064,13 +1076,11 @@
             ];
 
             const usedTimeSlots = new Set();
-            let teamFormedThisOverallIteration; // Flag to indicate if any team was formed in the current loop pass
-
-            // Loop to generate maximum possible teams
-            do {
-                teamFormedThisOverallIteration = false;
-                let bestSlot = null;
-                let maxEligiblePlayersInSlot = -1;
+            
+            // Loop until target number of teams is reached or no more teams can be formed
+            let formedTeamsCount = 0;
+            while (formedTeamsCount < numTeams) {
+                let teamFormedInThisIteration = false; // Flag to indicate if any team was formed in the current while loop pass
 
                 const availableSlots = [];
                 // Find all potential slots where a team *might* be formed
@@ -1102,21 +1112,18 @@
                     }
                 }
 
+                // If no more available slots where a team can be formed, break the loop
                 if (availableSlots.length === 0) {
-                    if (equipes.length > 0) { // Check if any teams were formed at all
-                         showToast(`Impossible de former plus d'équipes. ${equipes.length} équipe(s) formée(s).`, 'info', 7000);
-                    } else {
-                         showToast(`Impossible de former des équipes. Aucun joueur disponible ou pas assez de créneaux.`, 'error', 7000);
+                    if (formedTeamsCount < numTeams) {
+                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de créneaux ou de joueurs disponibles.`, 'info', 7000);
                     }
-                    break;
+                    break; // No more teams can be formed
                 }
 
                 // Sort slots by eligible players count (descending) to prioritize slots with more options
                 availableSlots.sort((a, b) => b.eligiblePlayersCount - a.eligiblePlayersCount);
-                bestSlot = availableSlots[0]; // Choose the best slot
+                let bestSlot = availableSlots[0]; // Choose the best slot
                 usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`); // Mark slot as used
-
-                let teamFormedInThisSlotAttempt = false; // Flag for this specific slot attempt
 
                 // Try to form a team for this best slot with prioritized compositions
                 const playersAvailableInBestSlot = personnes
@@ -1134,7 +1141,6 @@
                     if (eliteInSlot.length >= combo.elite && normalInSlot.length >= combo.normal) {
                         const teamResult = tryPickPersons(eliteInSlot, normalInSlot, combo.elite, combo.normal);
                         if (teamResult.success) {
-                            // Determine if each picked player is a 'Participation' or 'Aide' for THIS specific team
                             const membersWithTypes = teamResult.pickedPersons.map(idx => {
                                 const person = personnes[idx];
                                 let type = '';
@@ -1155,21 +1161,24 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            teamFormedInThisSlotAttempt = true;
-                            teamFormedThisOverallIteration = true; // A team was formed in this overall loop pass
-                            break; // Move to find next slot for a new team
+                            formedTeamsCount++;
+                            teamFormedInThisIteration = true; // A team was formed in this overall loop pass
+                            break; // Move to find next team
                         }
                     }
                 }
 
-                if (!teamFormedInThisSlotAttempt) {
+                if (!teamFormedInThisIteration) {
                     // If no team could be formed in the selected best slot, even after trying all combos
-                    // it means we can't form any more teams with the remaining available players in this loop pass.
-                    // This break will lead to the outer `do...while` condition check.
+                    // it means we can't form any more teams. Break the outer loop.
+                    if (formedTeamsCount < numTeams) {
+                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de combinaisons possibles.`, 'info', 7000);
+                    }
                     break;
                 }
 
-            } while (teamFormedThisOverallIteration); // Continue as long as we keep forming teams
+            } // Continue until numTeams are formed or no more teams can be formed
+
 
             // Final check for players not included
             const allParticipantsWithAvailability = personnes.filter(p => {
@@ -1191,7 +1200,51 @@
             renderEquipesTable();
             renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
+            displayOptimalSlots(); // Update optimal slots after team generation
         }
+
+        // Function to analyze and display optimal slots
+        function displayOptimalSlots() {
+            optimalSlotsContainer.innerHTML = ''; // Clear previous content
+
+            const optimalSlots = [];
+
+            for (const day of JOURS_SEMAINE) {
+                for (const hour of HEURES_JOUR) {
+                    let eliteCount = 0;
+                    let normalCount = 0;
+                    const eligiblePlayersInSlot = personnes.filter(p =>
+                        p.disponibilites[day] && p.disponibilites[day][hour] &&
+                        (p.currentParticipations < p.maxParticipations || p.currentAide < p.maxAide)
+                    );
+
+                    if (eligiblePlayersInSlot.length >= 5) {
+                        eligiblePlayersInSlot.forEach(p => {
+                            if (p.niveau === "Élite") eliteCount++;
+                            else normalCount++;
+                        });
+                        optimalSlots.push({ day, hour, eliteCount, normalCount, totalCount: eligiblePlayersInSlot.length });
+                    }
+                }
+            }
+
+            // Sort by total eligible players (descending)
+            optimalSlots.sort((a, b) => b.totalCount - a.totalCount);
+
+            if (optimalSlots.length === 0) {
+                optimalSlotsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Aucun créneau optimal trouvé pour former une équipe de 5.</p>';
+            } else {
+                optimalSlotsContainer.innerHTML = '<h4>Top Créneaux (dispos & éligibles) :</h4>';
+                // Display top 5 or all if less than 5
+                optimalSlots.slice(0, 5).forEach(slot => {
+                    const slotItem = document.createElement('div');
+                    slotItem.className = 'optimal-slot-item';
+                    slotItem.innerHTML = `<span>${slot.day} ${slot.hour}</span> : ${slot.totalCount} joueurs (Élite: ${slot.eliteCount}, Normal: ${slot.normalCount})`;
+                    optimalSlotsContainer.appendChild(slotItem);
+                });
+            }
+        }
+        // END NEW
 
         function tryPickPersons(availableEliteIndices, availableNormalIndices, numEliteNeeded, numNormalNeeded) {
             let picked = [];
