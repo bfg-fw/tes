@@ -134,14 +134,14 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-bottom: 15px; /* Add margin bottom to the group */
+            margin-bottom: 15px;
         }
         .input-group > div {
             display: flex;
             flex-direction: column;
         }
         .input-group input,
-        .input-group select { /* Apply to select as well for consistency */
+        .input-group select {
             width: 100%; 
             margin-bottom: 0; 
         }
@@ -463,7 +463,7 @@
             font-size: 0.7em;
             color: #555;
         }
-        /* NEW: Style for bold names in select */
+        /* Style for bold names in select */
         option.bold-name {
             font-weight: bold;
         }
@@ -707,7 +707,7 @@
                     // --- CORRECTION / SIMPLIFICATION DE LA MIGRATION DES DISPONIBILITÉS ---
                     // Si p.disponibilites existe et a la structure attendue de 2h, l'utiliser directement.
                     // Sinon, générer un nouveau calendrier vide (ce qui gère aussi la migration implicitement si l'ancien est cassé).
-                    if (p.disponibilites && JOURS_SEMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
+                    if (p.disponibilites && JOURS_SEMAMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
                         // Data looks like valid 2h slots, use it directly (deep copy for safety)
                         p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
                     } else {
@@ -1076,14 +1076,14 @@
             const usedTimeSlots = new Set();
             
             let formedTeamsCount = 0;
-            while (formedTeamsCount < numTeams) { // Loop until target number of teams is reached
+            while (formedTeamsCount < numTeams) { 
                 let teamFormedInThisIteration = false; 
 
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
                         const slotKey = `${day}_${hour}`;
-                        if (usedTimeSlots.has(slotKey)) continue;
+                        if (usedTimeSlots.has(slotKey)) continue; 
 
                         let eligiblePlayersInSlot = personnes.filter(p =>
                             p.disponibilites[day] && p.disponibilites[day][hour] &&
@@ -1154,25 +1154,22 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            formedTeamsCount++; // Increment formed teams count
+                            formedTeamsCount++; 
                             teamFormedInThisSlotAttempt = true;
-                            break; // Break inner loop to try next team
+                            break; 
                         }
                     }
                 }
 
                 if (!teamFormedInThisSlotAttempt) {
-                    // If no team could be formed in the selected best slot, it means
-                    // we cannot form more teams using the current strategy or available players.
                     if (formedTeamsCount < numTeams) {
                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de combinaisons possibles.`, 'info', 7000);
                     }
-                    break; // Break the outer loop
+                    break;
                 }
 
-            } // while (formedTeamsCount < numTeams)
+            } 
 
-            // Final check for players not included
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
@@ -1192,7 +1189,7 @@
             renderEquipesTable();
             renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
-            displayOptimalSlots(); // Update optimal slots after team generation
+            displayOptimalSlots(); 
         }
 
         function tryPickPersons(availableEliteIndices, availableNormalIndices, numEliteNeeded, numNormalNeeded) {
@@ -1333,6 +1330,13 @@
 
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'player-type';
+                    // NEW: Add specific class for Participation/Aide type for styling
+                    if (member.type === 'Participation') {
+                        typeSpan.classList.add('type-participation');
+                    } else if (member.type === 'Aide') {
+                        typeSpan.classList.add('type-aide');
+                    }
+                    // END NEW
                     typeSpan.textContent = `(${member.type})`;
                     playerDiv.appendChild(typeSpan);
 
