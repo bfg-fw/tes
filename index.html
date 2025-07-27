@@ -16,6 +16,9 @@
             --panel-bg: #ffffff;
             --border-color: #bdc3c7;
             --shadow-color: rgba(0, 0, 0, 0.1);
+            --underloaded-color: #ffe0b2; /* Light orange */
+            --optimal-color: #c8e6c9; /* Light green */
+            --overloaded-color: #bbdefb; /* Light blue */
         }
 
         body {
@@ -590,9 +593,6 @@
                 <h2>Génération d'Équipes Hebdomadaires</h2>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Génère le nombre maximal d'équipes de 5 pour la semaine, en fonction des disponibilités et des priorités.</p>
 
-                <label for="numTeamsToGenerate">Nombre d'équipes à générer pour la semaine :</label>
-                <input type="number" id="numTeamsToGenerate" min="1" value="1" required>
-                
                 <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
                 <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
 
@@ -632,7 +632,8 @@
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
-        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
+        // Removed numTeamsToGenerateInput
+        // const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); // This line is now removed
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
@@ -715,17 +716,11 @@
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
                     
-                    // --- CORRECTION / SIMPLIFICATION DE LA MIGRATION DES DISPONIBILITÉS ---
-                    // Si p.disponibilites existe et a la structure attendue de 2h, l'utiliser directement.
-                    // Sinon, générer un nouveau calendrier vide (ce qui gère aussi la migration implicitement si l'ancien est cassé).
                     if (p.disponibilites && JOURS_SEMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
-                        // Data looks like valid 2h slots, use it directly (deep copy for safety)
                         p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
                     } else {
-                        // Old format or invalid, generate new empty structure
                         p.disponibilites = generateEmptyAvailabilities();
                     }
-                    // --- FIN CORRECTION ---
 
                     if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
                     if (typeof p.currentAide === 'undefined') p.currentAide = 0;
@@ -989,8 +984,6 @@
                 hourLabel.textContent = hour;
                 calendarGrid.appendChild(hourLabel);
             });
-
-            // No density calculation or display in this version
             
             JOURS_SEMAINE.forEach(day => {
                 const dayLabel = document.createElement('div');
@@ -1083,9 +1076,6 @@
         // Helper to get cells within a rectangular selection
         function getCellsInRect(start, end) {
             const cells = [];
-            // Assuming current structure, day labels are first 7 divs in grid (row 0), hour labels are next 24 (row 0)
-            // No need to query dayLabels and hourLabels DOM elements just for their data-day/data-hour values.
-            // We use JOURS_SEMAINE and HEURES_JOUR constants to determine indices.
             
             const startDayIndex = JOURS_SEMAINE.indexOf(start.dataset.day);
             const startHourIndex = HEURES_JOUR.indexOf(start.dataset.hour);
@@ -1130,7 +1120,7 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            currentPerson.disponibilites = generateEmptyAvailabilities(); // Reset to clear potential old/invalid data
+            currentPerson.disponibilites = generateEmptyAvailabilities();
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
@@ -1140,7 +1130,6 @@
             });
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
-            // Removed displayOptimalSlots() call here as it's not present in this version
         }
 
         async function resetCalendarForSelectedPerson() {
@@ -1155,17 +1144,14 @@
                 await saveData(); 
                 renderCalendar(); 
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
-                // Removed displayOptimalSlots() call here as it's not present in this version
             }
         }
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
-            const numTeams = parseInt(numTeamsToGenerateInput.value); 
-            if (isNaN(numTeams) || numTeams < 1) {
-                showToast("Veuillez entrer un nombre valide d'équipes à générer (au moins 1).", 'error');
-                return;
-            }
+            // Revert to generating maximum possible teams
+            // const numTeams = parseInt(numTeamsToGenerateInput.value); // This line is now removed
+            // if (isNaN(numTeams) || numTeams < 1) { /* ... */ } // This block is removed
 
             equipes = [];
             resetParticipationCounters(false);
@@ -1182,16 +1168,18 @@
             ];
 
             const usedTimeSlots = new Set();
-            
-            let formedTeamsCount = 0;
-            while (formedTeamsCount < numTeams) { 
-                let teamFormedInThisIteration = false; 
+            let teamFormedThisOverallIteration; // Flag to indicate if any team was formed in the current loop pass
+
+            // Loop to generate maximum possible teams
+            do {
+                teamFormedThisOverallIteration = false; // Reset flag for each outer iteration
+                let bestSlot = null; // No need for maxEligiblePlayersInSlot directly here, it's used in availableSlots sort
 
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
                         const slotKey = `${day}_${hour}`;
-                        if (usedTimeSlots.has(slotKey)) continue; 
+                        if (usedTimeSlots.has(slotKey)) continue;
 
                         let eligiblePlayersInSlot = personnes.filter(p =>
                             p.disponibilites[day] && p.disponibilites[day][hour] &&
@@ -1216,14 +1204,11 @@
                 }
 
                 if (availableSlots.length === 0) {
-                    if (formedTeamsCount < numTeams) {
-                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de créneaux ou de joueurs disponibles.`, 'info', 7000);
-                    }
-                    break;
+                    break; // No more teams can be formed
                 }
 
                 availableSlots.sort((a, b) => b.eligiblePlayersCount - a.eligiblePlayersCount);
-                let bestSlot = availableSlots[0];
+                bestSlot = availableSlots[0];
                 usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
 
                 let teamFormedInThisSlotAttempt = false;
@@ -1262,21 +1247,21 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            formedTeamsCount++;
+                            // No formedTeamsCount increment here, as we loop until no more teams can be formed
                             teamFormedInThisSlotAttempt = true;
-                            break; 
+                            teamFormedThisOverallIteration = true; // Set flag to true if a team was formed
+                            break;
                         }
                     }
                 }
 
                 if (!teamFormedInThisSlotAttempt) {
-                    if (formedTeamsCount < numTeams) {
-                        showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de combinaisons possibles.`, 'info', 7000);
-                    }
+                    // If no team could be formed in the best slot using any combo,
+                    // it means we cannot form any more teams in general with current players/slots/rules.
                     break;
                 }
 
-            } while (formedTeamsCount < numTeams);
+            } while (teamFormedThisOverallIteration); // Continue as long as we successfully form a team in an iteration
 
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
@@ -1297,7 +1282,7 @@
             renderEquipesTable();
             renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
-            // Removed displayOptimalSlots() call here as it's not present in this version
+            displayOptimalSlots(); 
         }
 
         function tryPickPersons(availableEliteIndices, availableNormalIndices, numEliteNeeded, numNormalNeeded) {
@@ -1473,8 +1458,6 @@
             }
         }
 
-        // No resetAllData function
-
         // --- ÉVÉNEMENTS ---
         personneForm.addEventListener('submit', addUpdatePerson);
         calendarPersonSelector.addEventListener('change', renderCalendar);
@@ -1504,6 +1487,61 @@
                 await saveData(); 
                 renderCalendar(); 
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+            }
+        }
+
+        // Function to analyze and display optimal slots
+        function displayOptimalSlots() {
+            optimalSlotsContainer.innerHTML = ''; // Clear previous content
+
+            const optimalSlots = [];
+
+            // These thresholds apply to the global count of players available in a slot.
+            const UNDERLOADED_THRESHOLD = 5; // Less than 5 players available
+            const OVERLOADED_THRESHOLD = 15; // More than 15 players available
+
+            for (const day of JOURS_SEMAINE) {
+                for (const hour of HEURES_JOUR) {
+                    let eliteCount = 0;
+                    let normalCount = 0;
+                    const eligiblePlayersInSlot = personnes.filter(p =>
+                        p.disponibilites[day] && p.disponibilites[day][hour] &&
+                        (p.currentParticipations < p.maxParticipations || p.currentAide < p.maxAide)
+                    );
+
+                    if (eligiblePlayersInSlot.length >= 1) { // Check for at least 1 player to show a slot
+                        eligiblePlayersInSlot.forEach(p => {
+                            if (p.niveau === "Élite") eliteCount++;
+                            else normalCount++;
+                        });
+                        optimalSlots.push({ day, hour, eliteCount, normalCount, totalCount: eligiblePlayersInSlot.length });
+                    }
+                }
+            }
+
+            // Sort by total eligible players (descending)
+            optimalSlots.sort((a, b) => b.totalCount - a.totalCount);
+
+            if (optimalSlots.length === 0) {
+                optimalSlotsContainer.innerHTML = '<p style="text-align: center; color: #7f8c8d;">Aucun créneau avec des joueurs disponibles trouvé.</p>';
+            } else {
+                optimalSlotsContainer.innerHTML = '<h4>Top Créneaux (dispos & éligibles) :</h4>';
+                // Display top 5 or all if less than 5
+                optimalSlots.slice(0, 5).forEach(slot => {
+                    const slotItem = document.createElement('div');
+                    slotItem.className = 'optimal-slot-item';
+                    let statusColor = '';
+                    if (slot.totalCount < UNDERLOADED_THRESHOLD) {
+                        statusColor = `color: var(--underloaded-color); font-weight: bold;`;
+                    } else if (slot.totalCount > OVERLOADED_THRESHOLD) {
+                        statusColor = `color: var(--overloaded-color); font-weight: bold;`;
+                    } else { /* Between UNDERLOADED and OVERLOADED (inclusive of min optimal) */
+                        statusColor = `color: var(--optimal-color); font-weight: bold;`;
+                    }
+
+                    slotItem.innerHTML = `<span>${slot.day} ${slot.hour}</span> : <span style="${statusColor}">${slot.totalCount} joueurs</span> (Élite: ${slot.eliteCount}, Normal: ${slot.normalCount})`;
+                    optimalSlotsContainer.appendChild(slotItem);
+                });
             }
         }
     </script>
