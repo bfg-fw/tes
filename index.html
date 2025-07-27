@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionnaire d'Équipes Hebdomadaire</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Gestionnaire d'Équipes</title> <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #3498db;
@@ -31,14 +30,7 @@
             gap: 15px;
         }
 
-        h1 {
-            color: var(--primary-color);
-            text-align: center;
-            margin-bottom: 20px;
-            font-weight: 700;
-            font-size: 2em;
-        }
-
+        /* REMOVED: H1 style as H1 itself is removed */
         h2 {
             font-size: 1.4em;
             color: var(--text-color);
@@ -112,23 +104,22 @@
             background-color: #f8f9fa;
         }
 
-        /* NEW: Styles for 3-column AP/Level layout */
-        .ap-level-group {
+        /* Group for two columns */
+        .input-group {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 columns, equal width */
-            gap: 10px; /* Space between columns */
-            margin-bottom: 15px; /* Adjust as needed for spacing below the group */
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px; /* Add margin bottom to the group */
         }
-        .ap-level-group > div {
+        .input-group > div {
             display: flex;
             flex-direction: column;
         }
-        .ap-level-group input,
-        .ap-level-group select {
-            width: 100%; /* Fill the grid column */
-            margin-bottom: 0; /* Remove default margin-bottom from inputs/selects */
+        .input-group input,
+        .input-group select { /* Apply to select as well for consistency */
+            width: 100%; 
+            margin-bottom: 0; 
         }
-        /* END NEW */
         
         input[type="checkbox"] {
             margin-bottom: 15px;
@@ -139,20 +130,24 @@
         button {
             background-color: var(--primary-color);
             color: white;
-            padding: 8px 15px;
+            padding: 8px 16px; /* Adjusted padding for less length */
             border: none;
-            border-radius: 6px;
+            border-radius: 20px; /* More rounded, like Google buttons */
             cursor: pointer;
             font-size: 0.9em;
             margin-right: 10px;
-            transition: background-color 0.3s ease, transform 0.1s ease;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
             flex-shrink: 0;
+            min-width: 100px; /* Ensure a minimum width */
+            text-align: center;
+            font-weight: bold; /* Make button text bold */
         }
 
         button:hover {
             background-color: #2980b9;
             transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
         }
 
         button.reset {
@@ -238,25 +233,27 @@
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
+            border-radius: 15px; /* More rounded small buttons */
+            min-width: 70px; /* Small buttons, but with min width */
         }
-        td.actions-cell button[disabled] {
-            opacity: 0.5;
-            cursor: not-allowed;
+        td.actions-cell button.reset { /* Ensure delete button has specific style */
+            background-color: var(--danger-color);
         }
-        td.actions-cell a.button {
+        td.actions-cell a.button { 
             display: inline-block;
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
-            background-color: #6c5ce7;
+            background-color: #6c5ce7; 
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 15px; /* More rounded small buttons */
             text-decoration: none;
             text-align: center;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+            min-width: 70px;
         }
         td.actions-cell a.button:hover {
             background-color: #5d4be4;
@@ -266,6 +263,10 @@
         /* Calendar Styles */
         #calendarPersonSelector {
             width: calc(100% - 18px);
+            padding: 8px; /* Added padding to match other inputs/selects */
+            border-radius: 6px; /* Match other inputs */
+            border: 1px solid var(--border-color); /* Match other inputs */
+            background-color: #f8f9fa; /* Match other inputs */
             margin-bottom: 15px;
         }
 
@@ -281,15 +282,19 @@
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: auto repeat(12, 40px); /* Adjusted for 12 slots */
+            /* NEW: day label column width increased, time slots flexible */
+            grid-template-columns: 80px repeat(12, 1fr); 
             gap: 1px;
-            min-width: 700px; /* Base min-width */
+            min-width: 800px; /* Minimum width to accommodate wider day labels and flexible cells */
         }
-        /* NEW: Adjust day label width and calendar grid columns */
-        @media (min-width: 769px) { /* Apply on larger screens where space allows */
+        /* Adjusted min-width for calendar grid on smaller screens to be flexible */
+        @media (max-width: 768px) { 
             .calendar-grid {
-                grid-template-columns: 80px repeat(12, 1fr); /* Day label wider, cells flexible */
-                min-width: 800px; /* Adjust min-width to accommodate wider day labels */
+                grid-template-columns: auto repeat(12, 1fr);
+                min-width: unset; /* Remove fixed min-width on small screens */
+            }
+            .day-label-row {
+                min-width: unset !important; /* Allow day labels to shrink on small screens */
             }
         }
         /* End NEW */
@@ -303,10 +308,10 @@
             white-space: nowrap;
         }
         .calendar-grid.read-only .availability-cell {
-            cursor: default; /* No pointer for read-only */
+            cursor: default; 
         }
         .calendar-grid.read-only .availability-cell:hover {
-            background-color: #f0f4f7; /* No hover effect for read-only */
+            background-color: #f0f4f7; 
         }
 
 
@@ -320,17 +325,13 @@
         .day-label-row {
             background-color: #d9edf7;
             font-weight: bold;
-            /* NEW: text-align left, padding right instead of left for consistency with width adjustment */
+            /* NEW: Increased font size for day labels */
+            font-size: 0.9em; 
             text-align: left; 
             padding-left: 5px;
             padding-right: 5px; 
-            /* End NEW */
             grid-column: 1;
-            white-space: normal; /* Allow text to wrap if label is long and space is tight */
-        }
-        /* Ensure day labels don't get too small */
-        .day-label-row:nth-child(7n+1) { /* Every 7th div starting from 1st (day labels) */
-            min-width: 70px; /* Ensure a minimum width for day labels */
+            white-space: normal; 
         }
 
         .availability-cell {
@@ -338,7 +339,7 @@
             cursor: pointer;
             transition: background-color 0.2s ease;
             position: relative;
-            width: auto; /* Changed from fixed width to auto/flexible */
+            width: auto; 
             height: 25px;
             display: flex;
             align-items: center;
@@ -439,14 +440,17 @@
             font-size: 0.7em;
             color: #555;
         }
+        /* NEW: Style for bold names in select */
+        option.bold-name {
+            font-weight: bold;
+        }
+        /* END NEW */
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
 
     <div class="main-content-wrapper" id="mainContentWrapper">
-        <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
-
         <div class="main-container">
             <div class="panel">
                 <h2>Participants</h2>
@@ -513,7 +517,8 @@
 
             <div class="panel">
                 <h2>Disponibilités Hebdomadaires</h2>
-                <label for="calendarPersonSelector">Sélectionner un participant :</label> <select id="calendarPersonSelector">
+                <label for="calendarPersonSelector">Sélectionner un participant :</label> 
+                <select id="calendarPersonSelector">
                     </select>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Cliquez sur les cases pour basculer la disponibilité pour ce créneau de 2h.</p>
 
@@ -523,7 +528,7 @@
                 </div>
                 <button type="button" id="saveAvailabilitiesBtn" style="margin-top: auto;">Sauvegarder les Disponibilités</button>
                 <button type="button" id="resetCalendarBtn" class="tertiary" style="margin-top: 10px;">Réinitialiser Calendrier</button>
-                </div>
+            </div>
 
             <div class="panel">
                 <h2>Génération d'Équipes Hebdomadaires</h2>
@@ -564,15 +569,13 @@
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); // New button element
 
-        // Removed numTeamsToGenerateInput
-        // Removed teamCompositionFilter
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
-        // Removed resetAllDataBtn DOM element completely now
+        // Removed resetAllDataBtn from HTML, so remove its JS reference too
         // const resetAllDataBtn = document.getElementById('resetAllDataBtn'); 
 
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
@@ -605,8 +608,6 @@
         }
 
         // --- FONCTIONS UTILITAIRES DE SAUVEGARDE/CHARGEMENT VIA BACKEND ---
-        // Note: Sans authentification, toutes les données sont partagées globalement
-        // car il n'y a pas de 'currentLoggedUser' pour les isoler.
         async function saveData() {
             try {
                 const dataToSend = { 
@@ -634,7 +635,6 @@
 
         async function loadData() {
             try {
-                // Charger les données du backend pour l'utilisateur générique
                 const response = await fetch(`${BACKEND_API_URL}/api/loadData/global_user`);
 
                 if (!response.ok) {
@@ -646,14 +646,12 @@
                 personnes = data.personnes || [];
                 equipes = data.equipes || [];
 
-                // Migration / Initialisation des propriétés pour les données chargées
                 personnes.forEach(p => {
                     if (typeof p.baseAP === 'undefined') p.baseAP = 0;
                     if (typeof p.awakeningAP === 'undefined') p.awakeningAP = 0;
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
                     
-                    // Migration des disponibilités 1h vers 2h si nécessaire
                     const tempDispos = generateEmptyAvailabilities();
                     if (p.disponibilites) {
                         JOURS_SEMAINE.forEach(day => {
@@ -900,6 +898,9 @@
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = person.nom;
+                // NEW: Make name bold in select options
+                option.classList.add('bold-name'); 
+                // END NEW
                 calendarPersonSelector.appendChild(option);
                 if (index.toString() === lastSelectedValue) {
                     foundLastSelection = true;
@@ -988,6 +989,23 @@
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
         }
+
+        // NEW: Function to reset calendar for selected person
+        async function resetCalendarForSelectedPerson() {
+            const selectedIndex = parseInt(calendarPersonSelector.value);
+            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
+                showToast("Veuillez sélectionner un participant pour réinitialiser son calendrier.", 'error');
+                return;
+            }
+            const person = personnes[selectedIndex];
+            if (confirm(`Êtes-vous sûr de vouloir réinitialiser toutes les disponibilités de "${person.nom}" ?`)) {
+                person.disponibilites = generateEmptyAvailabilities();
+                await saveData(); 
+                renderCalendar(); 
+                showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+            }
+        }
+        // END NEW
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
@@ -1319,9 +1337,7 @@
         clearPersonFormBtn.addEventListener('click', clearPersonForm);
         saveAvailabilitiesBtn.addEventListener('click', saveAvailabilities);
         resetParticipationBtn.addEventListener('click', () => resetParticipationCounters(true));
-        resetCalendarBtn.addEventListener('click', resetCalendarForSelectedPerson); // New event listener
-        // Removed resetAllDataBtn event listener
-        // resetAllDataBtn.addEventListener('click', resetAllData); 
+        resetCalendarBtn.addEventListener('click', resetCalendarForSelectedPerson); 
 
         // --- INITIALISATION AU CHARGEMENT DE LA PAGE ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1329,7 +1345,7 @@
             renderAllUI();
         });
 
-        // NEW: Function to reset calendar for selected person
+        // Function to reset calendar for selected person
         async function resetCalendarForSelectedPerson() {
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
@@ -1339,8 +1355,8 @@
             const person = personnes[selectedIndex];
             if (confirm(`Êtes-vous sûr de vouloir réinitialiser toutes les disponibilités de "${person.nom}" ?`)) {
                 person.disponibilites = generateEmptyAvailabilities();
-                await saveData(); // Save the updated person data
-                renderCalendar(); // Re-render calendar to show empty state
+                await saveData(); 
+                renderCalendar(); 
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
             }
         }
