@@ -250,11 +250,6 @@
             width: calc(100% - 18px);
             margin-bottom: 15px;
         }
-        #calendarPersonSelector[disabled] {
-            opacity: 0.7;
-            cursor: not-allowed;
-            background-color: #e9ecef;
-        }
 
         .calendar-grid-container {
             overflow-x: auto;
@@ -380,10 +375,23 @@
         #saveAvailabilitiesBtn {
             margin-top: auto;
         }
-        #saveAvailabilitiesBtn[disabled] {
-            opacity: 0.5;
-            cursor: not-allowed;
+        /* No owner checks, so no disabled states for these buttons/selectors */
+        #saveAvailabilitiesBtn[disabled],
+        .actions-cell button[disabled],
+        #calendarPersonSelector[disabled],
+        .calendar-grid.read-only .availability-cell,
+        .calendar-grid.read-only .availability-cell:hover {
+            opacity: 1;
+            cursor: pointer;
+            background-color: var(--secondary-color); /* Just to make sure they're visible if they happened to inherit a disabled style */
         }
+        /* Override specific disabled style if button is still active */
+        .actions-cell button[disabled] {
+            cursor: pointer;
+            background-color: var(--primary-color); /* Or appropriate color */
+            opacity: 1;
+        }
+
         .player-with-type {
             display: flex;
             flex-direction: column;
@@ -397,31 +405,12 @@
             font-size: 0.7em;
             color: #555;
         }
-
-        /* Login Screen Styles (will be removed) */
-        #loginScreen {
-            display: none; /* Hide if not used */
-        }
-        .main-content-wrapper {
-            display: block; /* Show content by default if no login */
-        }
-        #userInfo {
-            display: none; /* Hide if no current user */
-        }
-        #logoutBtn {
-            display: none; /* Hide if no logout functionality */
-        }
     </style>
 </head>
 <body>
     <div class="toast-container" id="toastContainer"></div>
 
-    <div id="loginScreen" style="display: none;"></div>
-
     <div class="main-content-wrapper" id="mainContentWrapper">
-        <div id="userInfo" style="display: none;"></div>
-        <button id="logoutBtn" style="display: none;"></button>
-
         <h1>Gestionnaire d'Équipes Hebdomadaire</h1>
 
         <div class="main-container">
@@ -438,7 +427,7 @@
                     <input type="number" id="awakeningAP" min="0" value="0" required>
 
                     <label for="personLevel">Niveau (calculé) :</label>
-                    <select id="personLevel" disabled>
+                    <select id="personLevel" disabled> 
                         <option value="Élite">Élite</option>
                         <option value="Normal">Normal</option>
                     </select>
@@ -469,7 +458,7 @@
                                 <th>Aide Max</th>
                                 <th>Part. Actuelle</th>
                                 <th>Aide Actuelle</th>
-                                <th>Garmoth</th>
+                                <th>Garmoth</th> 
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -518,53 +507,38 @@
                 <div id="equipesResultsContainer">
                     <p style="text-align: center; color: #7f8c8d; padding: 20px;">Aucune équipe générée pour le moment.</p>
                 </div>
-                <button id="resetAllDataBtn" class="reset" style="margin-top: 20px;">Réinitialiser Toutes les Données</button>
+                <button id="resetAllDataBtn" class="reset" style="margin-top: 20px;">Réinitialiser Toutes les Données</button> 
             </div>
         </div>
     </div>
 
-   <script>
+    <script>
         // --- DONNÉES ET ÉTATS ---
-        let personnes = [];
-        let equipes = [];
-        const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."];
-        const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`);
-
-        // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
-        const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
-
-        // --- CALCUL DU NIVEAU BASÉ SUR LES AP ---
-        // Assurez-vous que cette fonction est ici, au début du script !
-        function calculateLevel(baseAP, awakeningAP) {
-            const result = (baseAP + awakeningAP) / 2;
-            return result >= ELITE_AP_THRESHOLD ? "Élite" : "Normal";
-        }
-
-        // --- URL DE VOTRE BACKEND RENDER.COM ---
-        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com'; // OU VOTRE URL CORRECTE
-
-        // ... le reste de votre code JavaScript ...
-    </script>
+        let personnes = []; 
+        let equipes = []; 
+        const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."]; 
+        // Créneaux de 2 heures
+        const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`); 
+        
         // --- SÉLECTEURS DU DOM ---
-        // Removed login elements
         const personneForm = document.getElementById('personForm');
         const personNameInput = document.getElementById('personName');
-        const baseAPInput = document.getElementById('baseAP');
-        const awakeningAPInput = document.getElementById('awakeningAP');
-        const personLevelSelect = document.getElementById('personLevel');
+        const baseAPInput = document.getElementById('baseAP'); 
+        const awakeningAPInput = document.getElementById('awakeningAP'); 
+        const personLevelSelect = document.getElementById('personLevel'); 
         const maxParticipationsInput = document.getElementById('maxParticipations');
         const maxAideInput = document.getElementById('maxAide');
-        const garmothLinkInput = document.getElementById('garmothLink');
+        const garmothLinkInput = document.getElementById('garmothLink'); 
         const personnesTableBody = document.getElementById('personnesTableBody');
-
-        const calendarPersonSelector = document.getElementById('calendarPersonSelector');
-        const calendarGrid = document.getElementById('calendarGrid');
+        
+        const calendarPersonSelector = document.getElementById('calendarPersonSelector'); 
+        const calendarGrid = document.getElementById('calendarGrid'); 
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
 
-        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate');
-        const teamCompositionFilter = document.getElementById('teamCompositionFilter');
+        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); 
+        const teamCompositionFilter = document.getElementById('teamCompositionFilter'); 
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
-        const equipesResultsContainer = document.getElementById('equipesResultsContainer');
+        const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
@@ -574,10 +548,15 @@
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
 
+        // --- CALCUL DU NIVEAU BASÉ SUR LES AP ---
+        function calculateLevel(baseAP, awakeningAP) {
+            const result = (baseAP + awakeningAP) / 2;
+            return result >= ELITE_AP_THRESHOLD ? "Élite" : "Normal";
+        }
+
         // --- URL DE VOTRE BACKEND RENDER.COM ---
         // REMPLACEZ CECI PAR L'URL RÉELLE DE VOTRE SERVICE WEB DÉPLOYÉ SUR RENDER.COM
-        // ATTENTION: Sans authentification, la donnée est partagée.
-        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com';
+        const BACKEND_API_URL = 'https://gestionnaire-backend.onrender.com'; 
 
         // --- TOAST NOTIFICATIONS ---
         function showToast(message, type = 'info', duration = 3000) {
@@ -586,7 +565,7 @@
             toast.textContent = message;
             toastContainer.appendChild(toast);
 
-            void toast.offsetWidth;
+            void toast.offsetWidth; 
 
             toast.classList.add('show');
 
@@ -796,6 +775,8 @@
                 person.maxAide = maxAide;
                 person.garmothLink = garmothLink;
                 showToast(`Participant "${nom}" mis à jour avec succès !`, 'success');
+                editingPersonIndex = -1;
+                addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
             } else {
                 if (personnes.some(p => p.nom === nom)) {
                     showToast("Ce nom de participant existe déjà. Veuillez le modifier ou mettre à jour l'existant.", 'error');
@@ -836,7 +817,6 @@
             personNameInput.focus();
             showToast(`Modification de "${person.nom}".`, 'info', 2000);
 
-            // Pas de désactivation/activation basée sur le propriétaire sans authentification
             personNameInput.disabled = false;
             baseAPInput.disabled = false;
             awakeningAPInput.disabled = false;
@@ -872,7 +852,6 @@
             editingPersonIndex = -1;
             addUpdatePersonBtn.textContent = 'Ajouter / Mettre à jour';
 
-            // Pas de désactivation/activation basée sur le propriétaire sans authentification
             personNameInput.disabled = false;
             baseAPInput.disabled = false;
             awakeningAPInput.disabled = false;
@@ -902,9 +881,6 @@
             if (personnes.length === 0) {
                 calendarPersonSelector.innerHTML = '<option value="">-- Aucun participant --</option>';
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Ajoutez un participant pour gérer ses disponibilités.</div>';
-                calendarPersonSelector.disabled = false; // Enabled, as no owner check
-                saveAvailabilitiesBtn.disabled = false; // Enabled
-                calendarGrid.classList.remove('read-only'); // Not read-only
                 return;
             }
 
@@ -924,8 +900,6 @@
             } else {
                 calendarPersonSelector.value = personnes.length > 0 ? 0 : '';
             }
-
-            calendarPersonSelector.disabled = false;
             renderCalendar();
         }
 
@@ -935,14 +909,9 @@
             const selectedIndex = parseInt(calendarPersonSelector.value);
             if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= personnes.length) {
                 calendarGrid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: #7f8c8d;">Veuillez sélectionner un participant pour afficher son calendrier.</div>';
-                calendarGrid.classList.remove('read-only'); // Not read-only
-                saveAvailabilitiesBtn.disabled = false; // Enabled
                 return;
             }
-            const currentPersonInCalendar = personnes[selectedIndex];
-
-            calendarGrid.classList.remove('read-only'); // Not read-only
-            saveAvailabilitiesBtn.disabled = false; // Enabled
+            const currentPerson = personnes[selectedIndex];
 
             const emptyCorner = document.createElement('div');
             calendarGrid.appendChild(emptyCorner);
@@ -962,7 +931,7 @@
                 HEURES_JOUR.forEach(hour => {
                     const cell = document.createElement('div');
                     cell.className = 'availability-cell';
-                    const isAvailable = currentPersonInCalendar.disponibilites[day] && currentPersonInCalendar.disponibilites[day][hour];
+                    const isAvailable = currentPerson.disponibilites[day] && currentPerson.disponibilites[day][hour];
                     if (isAvailable) {
                         cell.classList.add('oui');
                         cell.textContent = 'Oui';
@@ -972,7 +941,7 @@
                     }
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
-                    cell.onclick = toggleAvailability; // Always attach click handler
+                    cell.onclick = toggleAvailability;
                     calendarGrid.appendChild(cell);
                 });
             });
@@ -995,18 +964,18 @@
                 showToast("Veuillez sélectionner un participant pour sauvegarder les disponibilités.", 'error');
                 return;
             }
-            const currentPersonInCalendar = personnes[selectedIndex];
+            const currentPerson = personnes[selectedIndex];
 
-            currentPersonInCalendar.disponibilites = generateEmptyAvailabilities();
+            currentPerson.disponibilites = generateEmptyAvailabilities();
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
                 const day = cell.dataset.day;
                 const hour = cell.dataset.hour;
-                currentPersonInCalendar.disponibilites[day][hour] = cell.classList.contains('oui');
+                currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
             });
             await saveData();
-            showToast(`Disponibilités de ${currentPersonInCalendar.nom} sauvegardées !`, 'success');
+            showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
         }
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
@@ -1018,7 +987,7 @@
             }
 
             equipes = [];
-            resetParticipationCounters(false); // Resets current participations to 0
+            resetParticipationCounters(false);
 
             let equipeID = 1;
             const selectedCompositionFilter = teamCompositionFilter.value;
@@ -1094,8 +1063,6 @@
                 usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
 
                 let teamFormedInThisSlot = false;
-                // Get eligible players again, as their `currentParticipations`/`currentAide` might have changed
-                // or their availability state might have changed if a previous team was formed in the same slot.
                 const playersAvailableInBestSlot = personnes
                     .map((p, index) => ({ person: p, index: index }))
                     .filter(item =>
@@ -1112,7 +1079,6 @@
                         const teamResult = tryPickPersons(eliteInSlot, normalInSlot, combo.elite, combo.normal);
                         if (teamResult.success) {
                             // Determine if each picked player is a 'Participation' or 'Aide' for THIS specific team
-                            // This check must happen *before* updating person.currentParticipations
                             const membersWithTypes = teamResult.pickedPersons.map(idx => {
                                 const person = personnes[idx];
                                 let type = '';
@@ -1120,9 +1086,6 @@
                                     type = 'Participation';
                                 } else if (person.currentAide < person.maxAide) {
                                     type = 'Aide';
-                                } else {
-                                    // Fallback, theoretically shouldn't happen if pickFromDispo is correct
-                                    type = 'Inconnu';
                                 }
                                 return { name: person.nom, type: type };
                             });
@@ -1134,7 +1097,7 @@
                                 members: membersWithTypes,
                                 composition: combo.label
                             });
-                            updatePersonsParticipation(teamResult.pickedPersons); // Now update actual counts
+                            updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
                             formedTeamsCount++;
                             teamFormedInThisSlot = true;
@@ -1163,7 +1126,7 @@
                  showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
             }
 
-            await saveData(); // Save the new state with generated teams and updated participations
+            saveData();
             renderEquipesTable();
             renderPersonnesTable();
             showToast(`Génération de ${equipes.length} équipes terminée !`, 'success');
@@ -1338,10 +1301,6 @@
 
         async function resetAllData() {
             if (confirm("Êtes-vous sûr de vouloir réinitialiser TOUTES les données (participants, disponibilités et équipes) ? Cette action est irréversible.")) {
-                // Pour cette version sans authentification, "resetAllData" va vider tout le stockage global
-                // Pour une base de données partagée, cela effacera les données de TOUS les utilisateurs.
-                // S'il fallait une réinitialisation par utilisateur, il faudrait une API backend dédiée.
-
                 // Ici, nous effaçons les données localement et sauvegardons un état vide au backend.
                 personnes = [];
                 equipes = [];
