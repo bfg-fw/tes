@@ -16,6 +16,11 @@
             --panel-bg: #ffffff;
             --border-color: #bdc3c7;
             --shadow-color: rgba(0, 0, 0, 0.1);
+            /* NEW: Colors for availability density */
+            --underloaded-color: #ffe0b2; /* Light orange */
+            --optimal-color: #c8e6c9; /* Light green */
+            --overloaded-color: #bbdefb; /* Light blue */
+            /* END NEW */
         }
 
         body {
@@ -327,6 +332,12 @@
             box-sizing: border-box;
             white-space: nowrap;
         }
+        /* Styles for drag selection highlighting */
+        .availability-cell.drag-highlight {
+            background-color: #a7d9ed; /* Highlight color */
+            border: 1px solid #3498db;
+        }
+        /* END NEW */
         .calendar-grid.read-only .availability-cell {
             cursor: default;
         }
@@ -358,7 +369,7 @@
         }
 
         .availability-cell {
-            background-color: #f0f4f7;
+            background-color: var(--bg-color); /* Default background, will be overridden by density/oui/non */
             cursor: pointer;
             transition: background-color 0.2s ease;
             position: relative;
@@ -387,6 +398,15 @@
             color: white;
             font-weight: bold;
         }
+
+        /* NEW: Styles for availability density */
+        .availability-cell.density-underloaded { background-color: var(--underloaded-color); }
+        .availability-cell.density-optimal { background-color: var(--optimal-color); }
+        .availability-cell.density-overloaded { background-color: var(--overloaded-color); }
+        /* Preserve oui/non color over density background when applicable */
+        .availability-cell.oui { background-color: var(--secondary-color); }
+        .availability-cell.non { background-color: var(--danger-color); }
+        /* END NEW */
 
         /* Messages */
         .toast-container {
@@ -704,17 +724,23 @@
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
                     
-                    // --- CORRECTION / SIMPLIFICATION DE LA MIGRATION DES DISPONIBILITÉS ---
-                    // Si p.disponibilites existe et a la structure attendue de 2h, l'utiliser directement.
-                    // Sinon, générer un nouveau calendrier vide (ce qui gère aussi la migration implicitement si l'ancien est cassé).
-                    if (p.disponibilites && JOURS_SEMAMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
-                        // Data looks like valid 2h slots, use it directly (deep copy for safety)
-                        p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
-                    } else {
-                        // Old format or invalid, generate new empty structure
-                        p.disponibilites = generateEmptyAvailabilities();
+                    const tempDispos = generateEmptyAvailabilities();
+                    if (p.disponibilites) {
+                        JOURS_SEMAINE.forEach(day => {
+                            HEURES_JOUR.forEach(newHourSlot => {
+                                const oldHourStart = parseInt(newHourSlot.split('h-')[0]);
+                                let isAvailableInOldSlot = false;
+                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart}h`]) {
+                                    isAvailableInOldSlot = true;
+                                }
+                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart + 1}h`]) {
+                                    isAvailableInOldSlot = true;
+                                }
+                                tempDispos[day][newHourSlot] = isAvailableInOldSlot;
+                            });
+                        });
                     }
-                    // --- FIN CORRECTION ---
+                    p.disponibilites = tempDispos;
 
                     if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
                     if (typeof p.currentAide === 'undefined') p.currentAide = 0;
@@ -979,6 +1005,20 @@
                 calendarGrid.appendChild(hourLabel);
             });
 
+            // Calculate density for each slot
+            const slotDensity = {};
+            JOURS_SEMAINE.forEach(day => {
+                slotDensity[day] = {};
+                HEURES_JOUR.forEach(hour => {
+                    slotDensity[day][hour] = personnes.filter(p => p.disponibilites[day] && p.disponibilites[day][hour]).length;
+                });
+            });
+
+            // Thresholds for density visualization
+            const UNDERLOADED_THRESHOLD = 5; // Less than 5 players available
+            const OPTIMAL_THRESHOLD_MIN = 5; // 5 to 15 players available
+            const OVERLOADED_THRESHOLD = 15; // More than 15 players available
+
             JOURS_SEMAINE.forEach(day => {
                 const dayLabel = document.createElement('div');
                 dayLabel.className = 'day-label-row';
@@ -999,19 +1039,125 @@
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
                     cell.onclick = toggleAvailability;
+
+                    // Add density class
+                    const densityCount = slotDensity[day][hour];
+                    if (densityCount < UNDERLOADED_THRESHOLD) {
+                        cell.classList.add('density-underloaded');
+                    } else if (densityCount >= OPTIMAL_THRESHOLD_MIN && densityCount <= OVERLOADED_THRESHOLD) {
+                        cell.classList.add('density-optimal');
+                    } else if (densityCount > OVERLOADED_THRESHOLD) {
+                        cell.classList.add('density-overloaded');
+                    }
+                    // Add density count as title/tooltip
+                    cell.title = `Disponibles: ${densityCount}`;
+
                     calendarGrid.appendChild(cell);
                 });
             });
         }
 
+        // Drag-select functionality
+        let isDragging = false;
+        let startCell = null;
+        let toggleValue = null; // true if dragging to set 'oui', false if dragging to set 'non'
+        let currentHighlightedCells = new Set();
+
+        calendarGrid.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('availability-cell')) {
+                isDragging = true;
+                startCell = e.target;
+                toggleValue = !e.target.classList.contains('oui'); // Invert current state of starting cell
+                
+                // Clear any previous highlights and add initial
+                clearDragHighlights();
+                startCell.classList.add('drag-highlight');
+                currentHighlightedCells.add(startCell);
+
+                e.preventDefault(); // Prevent text selection
+            }
+        });
+
+        calendarGrid.addEventListener('mouseover', (e) => {
+            if (isDragging && e.target.classList.contains('availability-cell')) {
+                const hoveredCell = e.target;
+                clearDragHighlights(); // Clear previous highlights
+
+                const cellsToHighlight = getCellsInRect(startCell, hoveredCell);
+                cellsToHighlight.forEach(cell => {
+                    cell.classList.add('drag-highlight');
+                    currentHighlightedCells.add(cell);
+                });
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                // Apply the toggle value to all highlighted cells
+                currentHighlightedCells.forEach(cell => {
+                    cell.classList.remove('drag-highlight');
+                    if (toggleValue) {
+                        cell.classList.add('oui');
+                        cell.classList.remove('non');
+                        cell.textContent = 'Oui';
+                    } else {
+                        cell.classList.add('non');
+                        cell.classList.remove('oui');
+                        cell.textContent = 'Non';
+                    }
+                });
+                clearDragHighlights(); // Ensure all highlights are removed
+                startCell = null; // Reset start cell
+                // Don't call saveAvailabilities here, let user click the save button
+            }
+        });
+
+        function clearDragHighlights() {
+            currentHighlightedCells.forEach(cell => {
+                cell.classList.remove('drag-highlight');
+            });
+            currentHighlightedCells.clear();
+        }
+
+        // Helper to get cells within a rectangular selection
+        function getCellsInRect(start, end) {
+            const cells = [];
+            const dayLabels = Array.from(calendarGrid.querySelectorAll('.day-label-row'));
+            const hourLabels = Array.from(calendarGrid.querySelectorAll('.hour-label-header'));
+            
+            const startDayIndex = JOURS_SEMAINE.indexOf(start.dataset.day);
+            const startHourIndex = HEURES_JOUR.indexOf(start.dataset.hour);
+            const endDayIndex = JOURS_SEMAINE.indexOf(end.dataset.day);
+            const endHourIndex = HEURES_JOUR.indexOf(end.dataset.hour);
+
+            const minDay = Math.min(startDayIndex, endDayIndex);
+            const maxDay = Math.max(startDayIndex, endDayIndex);
+            const minHour = Math.min(startHourIndex, endHourIndex);
+            const maxHour = Math.max(startHourIndex, endHourIndex);
+
+            for (let d = minDay; d <= maxDay; d++) {
+                for (let h = minHour; h <= maxHour; h++) {
+                    const cell = calendarGrid.querySelector(`[data-day="${JOURS_SEMAINE[d]}"][data-hour="${HEURES_JOUR[h]}"]`);
+                    if (cell) {
+                        cells.push(cell);
+                    }
+                }
+            }
+            return cells;
+        }
+
         function toggleAvailability(event) {
-            const cell = event.target;
-            cell.classList.toggle('oui');
-            cell.classList.toggle('non');
-            if (cell.classList.contains('oui')) {
-                cell.textContent = 'Oui';
-            } else {
-                cell.textContent = 'Non';
+            // Only allow single click toggle if not dragging
+            if (!isDragging) {
+                const cell = event.target;
+                cell.classList.toggle('oui');
+                cell.classList.toggle('non');
+                if (cell.classList.contains('oui')) {
+                    cell.textContent = 'Oui';
+                } else {
+                    cell.textContent = 'Non';
+                }
             }
         }
 
@@ -1023,7 +1169,7 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            currentPerson.disponibilites = generateEmptyAvailabilities();
+            currentPerson.disponibilites = generateEmptyAvailabilities(); // Reset to clear potential old/invalid data
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
@@ -1033,6 +1179,7 @@
             });
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
+            displayOptimalSlots(); // Update optimal slots after saving new availability
         }
 
         async function resetCalendarForSelectedPerson() {
@@ -1047,6 +1194,7 @@
                 await saveData(); 
                 renderCalendar(); 
                 showToast(`Calendrier de ${person.nom} réinitialisé !`, 'success');
+                displayOptimalSlots(); // Update optimal slots after resetting calendar
             }
         }
 
@@ -1063,7 +1211,6 @@
 
             let equipeID = 1;
 
-            // Define priority for team compositions (always this order now)
             const TEAM_COMBINATIONS_PRIORITY = [
                 { elite: 5, normal: 0, label: "5 Élite" },
                 { elite: 4, normal: 1, label: "4 Élite + 1 Normal" },
@@ -1154,7 +1301,7 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            formedTeamsCount++; 
+                            formedTeamsCount++;
                             teamFormedInThisSlotAttempt = true;
                             break; 
                         }
@@ -1168,7 +1315,7 @@
                     break;
                 }
 
-            } 
+            } while (formedTeamsCount < numTeams);
 
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
@@ -1182,7 +1329,7 @@
             const participantsNotPlayed = allParticipantsWithAvailability.filter(p => p.currentParticipations === 0 && p.currentAide === 0);
 
             if (participantsNotPlayed.length > 0) {
-                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
+                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.length === 1 ? participantsNotPlayed[0].nom : participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
             }
 
             await saveData();
@@ -1330,13 +1477,12 @@
 
                     const typeSpan = document.createElement('span');
                     typeSpan.className = 'player-type';
-                    // NEW: Add specific class for Participation/Aide type for styling
+                    // Add specific class for Participation/Aide type for styling
                     if (member.type === 'Participation') {
                         typeSpan.classList.add('type-participation');
                     } else if (member.type === 'Aide') {
                         typeSpan.classList.add('type-aide');
                     }
-                    // END NEW
                     typeSpan.textContent = `(${member.type})`;
                     playerDiv.appendChild(typeSpan);
 
@@ -1366,7 +1512,7 @@
             }
         }
 
-        // Removed resetAllData function
+        // No resetAllData function
 
         // --- ÉVÉNEMENTS ---
         personneForm.addEventListener('submit', addUpdatePerson);
