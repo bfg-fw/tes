@@ -16,11 +16,9 @@
             --panel-bg: #ffffff;
             --border-color: #bdc3c7;
             --shadow-color: rgba(0, 0, 0, 0.1);
-            /* NEW: Colors for availability density */
             --underloaded-color: #ffe0b2; /* Light orange */
             --optimal-color: #c8e6c9; /* Light green */
             --overloaded-color: #bbdefb; /* Light blue */
-            /* END NEW */
         }
 
         body {
@@ -399,14 +397,13 @@
             font-weight: bold;
         }
 
-        /* NEW: Styles for availability density */
+        /* Styles for availability density */
         .availability-cell.density-underloaded { background-color: var(--underloaded-color); }
         .availability-cell.density-optimal { background-color: var(--optimal-color); }
         .availability-cell.density-overloaded { background-color: var(--overloaded-color); }
         /* Preserve oui/non color over density background when applicable */
         .availability-cell.oui { background-color: var(--secondary-color); }
         .availability-cell.non { background-color: var(--danger-color); }
-        /* END NEW */
 
         /* Messages */
         .toast-container {
@@ -487,7 +484,6 @@
         option.bold-name {
             font-weight: bold;
         }
-        /* END NEW */
         /* Style for optimal slots container */
         .optimal-slots-container {
             margin-top: 20px;
@@ -506,6 +502,14 @@
             font-weight: 700;
             color: var(--primary-color);
         }
+        /* NEW: Styles for type-participation and type-aide colors */
+        .player-type.type-participation {
+            color: var(--secondary-color); /* Greenish */
+        }
+        .player-type.type-aide {
+            color: var(--accent-color); /* Orangish */
+        }
+        /* END NEW */
     </style>
 </head>
 <body>
@@ -724,23 +728,17 @@
                     p.niveau = calculateLevel(p.baseAP, p.awakeningAP);
                     if (typeof p.garmothLink === 'undefined') p.garmothLink = '';
                     
-                    const tempDispos = generateEmptyAvailabilities();
-                    if (p.disponibilites) {
-                        JOURS_SEMAINE.forEach(day => {
-                            HEURES_JOUR.forEach(newHourSlot => {
-                                const oldHourStart = parseInt(newHourSlot.split('h-')[0]);
-                                let isAvailableInOldSlot = false;
-                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart}h`]) {
-                                    isAvailableInOldSlot = true;
-                                }
-                                if (p.disponibilites[day] && p.disponibilites[day][`${oldHourStart + 1}h`]) {
-                                    isAvailableInOldSlot = true;
-                                }
-                                tempDispos[day][newHourSlot] = isAvailableInOldSlot;
-                            });
-                        });
+                    // --- CORRECTION / SIMPLIFICATION DE LA MIGRATION DES DISPONIBILITÉS ---
+                    // Si p.disponibilites existe et a la structure attendue de 2h, l'utiliser directement.
+                    // Sinon, générer un nouveau calendrier vide (ce qui gère aussi la migration implicitement si l'ancien est cassé).
+                    if (p.disponibilites && JOURS_SEMAINE.every(day => p.disponibilites[day] && HEURES_JOUR.every(hour => typeof p.disponibilites[day][hour] === 'boolean'))) {
+                        // Data looks like valid 2h slots, use it directly (deep copy for safety)
+                        p.disponibilites = JSON.parse(JSON.stringify(p.disponibilites)); 
+                    } else {
+                        // Old format or invalid, generate new empty structure
+                        p.disponibilites = generateEmptyAvailabilities();
                     }
-                    p.disponibilites = tempDispos;
+                    // --- FIN CORRECTION ---
 
                     if (typeof p.currentParticipations === 'undefined') p.currentParticipations = 0;
                     if (typeof p.currentAide === 'undefined') p.currentAide = 0;
@@ -1169,7 +1167,7 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            currentPerson.disponibilites = generateEmptyAvailabilities(); // Reset to clear potential old/invalid data
+            currentPerson.disponibilites = generateEmptyAvailabilities();
 
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
@@ -1329,7 +1327,7 @@
             const participantsNotPlayed = allParticipantsWithAvailability.filter(p => p.currentParticipations === 0 && p.currentAide === 0);
 
             if (participantsNotPlayed.length > 0) {
-                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.length === 1 ? participantsNotPlayed[0].nom : participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
+                 showToast(`${participantsNotPlayed.length} participant(s) ("${participantsNotPlayed.map(p => p.nom).join(', ')}") disponibles n'ont pas pu être inclus dans une équipe cette semaine.`, 'info', 7000);
             }
 
             await saveData();
