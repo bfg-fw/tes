@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestionnaire d'Équipes</title> <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Gestionnaire d'Équipes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #3498db;
@@ -30,7 +31,14 @@
             gap: 15px;
         }
 
-        /* REMOVED: H1 style as H1 itself is removed */
+        h1 { /* This style is technically unused if H1 tag is removed */
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 2em;
+        }
+
         h2 {
             font-size: 1.4em;
             color: var(--text-color);
@@ -104,23 +112,39 @@
             background-color: #f8f9fa;
         }
 
-        /* NEW: Styles for 3-column AP/Level layout */
+        /* Styles for 3-column AP/Level layout */
         .ap-level-group {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* 3 columns, equal width */
-            gap: 10px; /* Space between columns */
-            margin-bottom: 15px; /* Adjust as needed for spacing below the group */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
         }
         .ap-level-group > div {
             display: flex;
             flex-direction: column;
         }
         .ap-level-group input,
-        .ap-level-group select { /* Apply to select as well for consistency */
+        .ap-level-group select {
+            width: 100%;
+            margin-bottom: 0;
+        }
+        
+        /* Group for two columns (e.g., max participations/aides) */
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px; /* Add margin bottom to the group */
+        }
+        .input-group > div {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group input,
+        .input-group select { /* Apply to select as well for consistency */
             width: 100%; 
             margin-bottom: 0; 
         }
-        /* END NEW */
         
         input[type="checkbox"] {
             margin-bottom: 15px;
@@ -131,18 +155,18 @@
         button {
             background-color: var(--primary-color);
             color: white;
-            padding: 8px 16px; /* Adjusted padding for less length */
+            padding: 8px 16px;
             border: none;
-            border-radius: 20px; /* More rounded, like Google buttons */
+            border-radius: 20px;
             cursor: pointer;
             font-size: 0.9em;
             margin-right: 10px;
             transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             flex-shrink: 0;
-            min-width: 100px; /* Ensure a minimum width */
+            min-width: 100px;
             text-align: center;
-            font-weight: bold; /* Make button text bold */
+            font-weight: bold;
         }
 
         button:hover {
@@ -234,21 +258,21 @@
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
-            border-radius: 15px; /* More rounded small buttons */
-            min-width: 70px; /* Small buttons, but with min width */
+            border-radius: 15px;
+            min-width: 70px;
         }
-        td.actions-cell button.reset { /* Ensure delete button has specific style */
+        td.actions-cell button.reset {
             background-color: var(--danger-color);
         }
-        td.actions-cell a.button { 
+        td.actions-cell a.button {
             display: inline-block;
             padding: 6px 10px;
             font-size: 0.8em;
             margin-right: 5px;
-            background-color: #6c5ce7; 
+            background-color: #6c5ce7;
             color: white;
             border: none;
-            border-radius: 15px; /* More rounded small buttons */
+            border-radius: 15px;
             text-decoration: none;
             text-align: center;
             cursor: pointer;
@@ -264,10 +288,10 @@
         /* Calendar Styles */
         #calendarPersonSelector {
             width: calc(100% - 18px);
-            padding: 8px; /* Added padding to match other inputs/selects */
-            border-radius: 6px; /* Match other inputs */
-            border: 1px solid var(--border-color); /* Match other inputs */
-            background-color: #f8f9fa; /* Match other inputs */
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: #f8f9fa;
             margin-bottom: 15px;
         }
 
@@ -283,18 +307,17 @@
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: auto repeat(12, 40px); /* Adjusted for 12 slots */
+            grid-template-columns: auto repeat(12, 40px);
             gap: 1px;
-            min-width: 700px; /* Base min-width */
+            min-width: 700px;
         }
-        /* NEW: Adjust day label width and calendar grid columns */
-        @media (min-width: 769px) { /* Apply on larger screens where space allows */
+        /* Adjust day label width and calendar grid columns */
+        @media (min-width: 769px) {
             .calendar-grid {
-                grid-template-columns: 80px repeat(12, 1fr); /* Day label wider, cells flexible */
-                min-width: 800px; /* Adjust min-width to accommodate wider day labels */
+                grid-template-columns: 80px repeat(12, 1fr);
+                min-width: 800px;
             }
         }
-        /* End NEW */
 
         .calendar-grid > div {
             padding: 3px 1px;
@@ -305,10 +328,10 @@
             white-space: nowrap;
         }
         .calendar-grid.read-only .availability-cell {
-            cursor: default; /* No pointer for read-only */
+            cursor: default;
         }
         .calendar-grid.read-only .availability-cell:hover {
-            background-color: #f0f4f7; /* No hover effect for read-only */
+            background-color: #f0f4f7;
         }
 
 
@@ -322,8 +345,7 @@
         .day-label-row {
             background-color: #d9edf7;
             font-weight: bold;
-            /* NEW: Increased font size for day labels */
-            font-size: 0.9em; 
+            font-size: 0.9em; /* Increased font size for day labels */
             text-align: left; 
             padding-left: 5px;
             padding-right: 5px; 
@@ -331,8 +353,8 @@
             white-space: normal; 
         }
         /* Ensure day labels don't get too small */
-        .day-label-row:nth-child(7n+1) { /* Every 7th div starting from 1st (day labels) */
-            min-width: 70px; /* Ensure a minimum width for day labels */
+        .day-label-row:nth-child(7n+1) {
+            min-width: 70px; 
         }
 
         .availability-cell {
@@ -554,7 +576,6 @@
         let personnes = []; 
         let equipes = []; 
         const JOURS_SEMAINE = ["Lundi", "Mardi", "Merc.", "Jeudi", "Vend.", "Sam.", "Dim."]; 
-        // Créneaux de 2 heures
         const HEURES_JOUR = Array.from({ length: 12 }, (_, i) => `${i * 2}h-${(i * 2) + 2}h`); 
         
         // --- SÉLECTEURS DU DOM ---
@@ -579,8 +600,6 @@
         const toastContainer = document.getElementById('toastContainer');
         const addUpdatePersonBtn = document.getElementById('addUpdatePersonBtn');
         const resetParticipationBtn = document.getElementById('resetParticipationBtn');
-        // Removed resetAllDataBtn from HTML, so remove its JS reference too
-        // const resetAllDataBtn = document.getElementById('resetAllDataBtn'); 
 
         // --- CONSTANTE POUR LE CALCUL DU NIVEAU ---
         const ELITE_AP_THRESHOLD = 350; // Seuil pour être "Élite"
@@ -615,7 +634,7 @@
         async function saveData() {
             try {
                 const dataToSend = { 
-                    username: 'global_user', // Utilisateur générique pour le stockage global
+                    username: 'global_user', 
                     personnes: personnes,
                     equipes: equipes
                 };
