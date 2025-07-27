@@ -329,7 +329,7 @@
             border: 1px solid #eee;
             box-sizing: border-box;
             white-space: nowrap;
-            /* Increased font size for numbers in cells */
+            /* NEW: Increased font size for numbers in cells */
             font-size: 0.9em; 
             font-weight: bold;
             color: var(--text-color); /* Default text color for numbers */
@@ -595,9 +595,6 @@
                 <h2>Génération d'Équipes Hebdomadaires</h2>
                 <p style="font-size:0.8em; margin-bottom: 10px;">Génère le nombre maximal d'équipes de 5 pour la semaine, en fonction des disponibilités et des priorités.</p>
 
-                <label for="numTeamsToGenerate">Nombre d'équipes à générer pour la semaine :</label>
-                <input type="number" id="numTeamsToGenerate" min="1" value="1" required>
-                
                 <button id="generateTeamsBtn" style="margin-top: 10px;">Générer les Équipes</button>
                 <button id="resetParticipationBtn" class="tertiary">Réinitialiser Compteurs</button>
 
@@ -637,7 +634,7 @@
         const saveAvailabilitiesBtn = document.getElementById('saveAvailabilitiesBtn');
         const resetCalendarBtn = document.getElementById('resetCalendarBtn'); 
 
-        const numTeamsToGenerateInput = document.getElementById('numTeamsToGenerate'); // Re-added
+        // Removed numTeamsToGenerateInput
         const generateTeamsBtn = document.getElementById('generateTeamsBtn');
         const equipesResultsContainer = document.getElementById('equipesResultsContainer'); 
         const clearPersonFormBtn = document.getElementById('clearPersonFormBtn');
@@ -989,7 +986,7 @@
                 calendarGrid.appendChild(hourLabel);
             });
             
-            // Calculate density for each slot
+            // Calculate density for each slot (re-added for number display)
             const slotDensity = {};
             JOURS_SEMAINE.forEach(day => {
                 slotDensity[day] = {};
@@ -997,6 +994,10 @@
                     slotDensity[day][hour] = personnes.filter(p => p.disponibilites[day] && p.disponibilites[day][hour]).length;
                 });
             });
+
+            // Thresholds for density visualization (used for tooltip, not color)
+            const UNDERLOADED_THRESHOLD = 5; 
+            const OVERLOADED_THRESHOLD = 15; 
 
             JOURS_SEMAINE.forEach(day => {
                 const dayLabel = document.createElement('div');
@@ -1021,6 +1022,10 @@
                     cell.dataset.day = day;
                     cell.dataset.hour = hour;
                     cell.onclick = toggleAvailability;
+
+                    // Add density info to tooltip (title)
+                    cell.title = `Disponibles: ${densityCount} (${isAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
+
                     calendarGrid.appendChild(cell);
                 });
             });
@@ -1032,46 +1037,40 @@
         let toggleValue = null; // true if dragging to set 'oui', false if dragging to set 'non'
         let currentHighlightedCells = new Set();
 
-        // Mousedown on calendar grid to start drag
         calendarGrid.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('availability-cell')) {
                 isDragging = true;
                 startCell = e.target;
                 toggleValue = !e.target.classList.contains('oui'); // Invert current state of starting cell
                 
-                clearDragHighlights(); // Clear any previous highlights
-                startCell.classList.add('drag-highlight'); // Highlight the starting cell
+                // Clear any previous highlights and add initial
+                clearDragHighlights();
+                startCell.classList.add('drag-highlight');
                 currentHighlightedCells.add(startCell);
 
                 e.preventDefault(); // Prevent text selection
             }
         });
 
-        // Mouseover while dragging to highlight cells
         calendarGrid.addEventListener('mouseover', (e) => {
             if (isDragging && e.target.classList.contains('availability-cell')) {
                 const hoveredCell = e.target;
-                // Only clear and re-highlight if the hovered cell is different
-                if (!currentHighlightedCells.has(hoveredCell) || currentHighlightedCells.size > 1) { 
-                    clearDragHighlights(); // Clear previous highlights
+                clearDragHighlights(); // Clear previous highlights
 
-                    const cellsToHighlight = getCellsInRect(startCell, hoveredCell);
-                    cellsToHighlight.forEach(cell => {
-                        cell.classList.add('drag-highlight');
-                        currentHighlightedCells.add(cell);
-                    });
-                }
+                const cellsToHighlight = getCellsInRect(startCell, hoveredCell);
+                cellsToHighlight.forEach(cell => {
+                    cell.classList.add('drag-highlight');
+                    currentHighlightedCells.add(cell);
+                });
             }
         });
 
-        // Mouseup anywhere on document to end drag
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
                 // Apply the toggle value to all highlighted cells
                 currentHighlightedCells.forEach(cell => {
-                    cell.classList.remove('drag-highlight'); // Remove highlight
-                    // Toggle 'oui'/'non' class
+                    cell.classList.remove('drag-highlight');
                     if (toggleValue) {
                         cell.classList.add('oui');
                         cell.classList.remove('non');
@@ -1079,21 +1078,7 @@
                         cell.classList.add('non');
                         cell.classList.remove('oui');
                     }
-                    // Update text content for these cells immediately after drag
-                    // This relies on slotDensity being up-to-date, so it reflects local changes
-                    const day = cell.dataset.day;
-                    const hour = cell.dataset.hour;
-                    let newDensityCount = 0;
-                    // Recalculate density for this specific cell without full render
-                    personnes.forEach(p => {
-                        // We need to update the data model *first* for the selected person
-                        // then recalculate the density based on the updated model for all people.
-                        // This part is better handled by a full re-render after saving.
-                        // For immediate feedback after drag, we'll just toggle the color.
-                        // The counts will be correct after save and renderCalendar call.
-                        newDensityCount += (p.disponibilites[day] && p.disponibilites[day][hour]) ? 1 : 0;
-                    });
-                    cell.textContent = newDensityCount; // Update text content to new count
+                    // Text content (count) is updated only on renderCalendar
                 });
                 clearDragHighlights(); // Ensure all highlights are removed
                 startCell = null; // Reset start cell
@@ -1137,30 +1122,9 @@
             // Only allow single click toggle if not dragging
             if (!isDragging) {
                 const cell = event.target;
-                const selectedIndex = parseInt(calendarPersonSelector.value);
-                const currentPerson = personnes[selectedIndex];
-                const day = cell.dataset.day;
-                const hour = cell.dataset.hour;
-
-                // Toggle the class for visual feedback
                 cell.classList.toggle('oui');
                 cell.classList.toggle('non');
-
-                // Update currentPerson's availability in data model
-                currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
-
-                // Recalculate and update density count for this specific cell immediately
-                let newDensityCount = 0;
-                personnes.forEach(p => {
-                    if (p.disponibilites[day] && p.disponibilites[day][hour]) {
-                        newDensityCount++;
-                    }
-                });
-                cell.textContent = newDensityCount; // Update text content to new count
-                
-                // Update tooltip
-                const isNowAvailable = cell.classList.contains('oui');
-                cell.title = `Disponibles: ${newDensityCount} (${isNowAvailable ? 'Oui' : 'Non'} pour ${currentPerson.nom})`;
+                // Text content (count) is updated only on renderCalendar
             }
         }
 
@@ -1172,20 +1136,17 @@
             }
             const currentPerson = personnes[selectedIndex];
 
-            // Reconstruct current person's disponibilites from the DOM classes.
-            // This is crucial because drag-select changes classes directly in the DOM.
-            currentPerson.disponibilites = generateEmptyAvailabilities(); 
+            currentPerson.disponibilites = generateEmptyAvailabilities();
+
             const cells = calendarGrid.querySelectorAll('.availability-cell');
             cells.forEach(cell => {
                 const day = cell.dataset.day;
                 const hour = cell.dataset.hour;
                 currentPerson.disponibilites[day][hour] = cell.classList.contains('oui');
             });
-
-
             await saveData();
             showToast(`Disponibilités de ${currentPerson.nom} sauvegardées !`, 'success');
-            // After saving, re-render the calendar to update all counts (displayOptimalSlots also calls this)
+            // After saving, re-render the calendar to update all counts (as another person's availability affects global counts)
             renderCalendar(); 
         }
 
@@ -1206,12 +1167,7 @@
 
         // --- GESTION DES ÉQUIPES HEBDOMADAIRES ---
         async function generateTeams() {
-            const numTeams = parseInt(numTeamsToGenerateInput.value); 
-            if (isNaN(numTeams) || numTeams < 1) {
-                showToast("Veuillez entrer un nombre valide d'équipes à générer (au moins 1).", 'error');
-                return;
-            }
-
+            // No longer reading numTeams from input, generating maximum possible
             equipes = [];
             resetParticipationCounters(false);
 
@@ -1227,11 +1183,13 @@
             ];
 
             const usedTimeSlots = new Set();
-            
-            let formedTeamsCount = 0;
-            while (formedTeamsCount < numTeams) { 
-                let teamFormedInThisIteration = false; 
+            let teamFormedInCurrentIteration; // Flag to indicate if any team was formed in the current outer loop pass
 
+            // Loop to generate maximum possible teams
+            do {
+                teamFormedInCurrentIteration = false; // Reset flag for each outer iteration
+                let bestSlot = null;
+                
                 const availableSlots = [];
                 for (const day of JOURS_SEMAINE) {
                     for (const hour of HEURES_JOUR) {
@@ -1261,17 +1219,14 @@
                 }
 
                 if (availableSlots.length === 0) {
-                    if (formedTeamsCount < numTeams) {
-                         showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de créneaux ou de joueurs disponibles.`, 'info', 7000);
-                    }
-                    break;
+                    break; // No more teams can be formed
                 }
 
                 availableSlots.sort((a, b) => b.eligiblePlayersCount - a.eligiblePlayersCount);
-                let bestSlot = availableSlots[0];
+                bestSlot = availableSlots[0];
                 usedTimeSlots.add(`${bestSlot.day}_${bestSlot.hour}`);
 
-                let teamFormedInThisSlotAttempt = false;
+                let teamFormedInThisSlotAttempt = false; // Flag for this specific slot attempt
                 const playersAvailableInBestSlot = personnes
                     .map((p, index) => ({ person: p, index: index }))
                     .filter(item =>
@@ -1307,21 +1262,18 @@
                             });
                             updatePersonsParticipation(teamResult.pickedPersons);
                             equipeID++;
-                            formedTeamsCount++; 
                             teamFormedInThisSlotAttempt = true;
+                            teamFormedInCurrentIteration = true; // Set flag to true if a team was formed
                             break; 
                         }
                     }
                 }
 
                 if (!teamFormedInThisSlotAttempt) {
-                    if (formedTeamsCount < numTeams) {
-                        showToast(`Impossible de former les ${numTeams} équipes demandées. Seulement ${formedTeamsCount} équipe(s) formée(s). Plus de combinaisons possibles.`, 'info', 7000);
-                    }
-                    break;
+                    break; // No more teams can be formed in this or subsequent iterations
                 }
 
-            } while (formedTeamsCount < numTeams);
+            } while (teamFormedInCurrentIteration); // Continue as long as we successfully form a team in an iteration
 
             const allParticipantsWithAvailability = personnes.filter(p => {
                 for (const day of JOURS_SEMAINE) {
@@ -1447,8 +1399,18 @@
             tableContainer.appendChild(table);
 
             const thead = table.createTHead();
-            const headerRow = thead.insertCell();
-            headerRow.colSpan = 9; // Spanning all columns for message if no data
+            const headerRow = thead.insertRow();
+            headerRow.innerHTML = `
+                <th>ID</th>
+                <th>Jour</th>
+                <th>Heure</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>P4</th>
+                <th>P5</th>
+                <th>Comp.</th>
+            `;
 
             const tbody = table.createTBody();
             sortedEquipes.forEach(team => {
